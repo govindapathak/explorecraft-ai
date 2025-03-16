@@ -11,6 +11,7 @@ export function useNearbyPlaces(searchRadius = 1500) {
   const [places, setPlaces] = useState<Recommendation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isApiLoaded, setIsApiLoaded] = useState(false);
+  const [locationInsights, setLocationInsights] = useState<string | null>(null);
   const { currentLocation } = useLocation();
 
   // Load Google Maps API on component mount
@@ -66,11 +67,19 @@ export function useNearbyPlaces(searchRadius = 1500) {
     loadGoogleMapsScript();
   }, []);
 
-  const searchNearbyPlaces = useCallback(async () => {
-    if (!currentLocation) {
+  // Function to search for places using either current location or manual coordinates
+  const searchNearbyPlaces = useCallback(async (manualLocation?: { name: string; latitude: number; longitude: number }) => {
+    // Use manual location if provided, otherwise use current location
+    const locationToUse = manualLocation || (currentLocation ? {
+      name: "Current Location",
+      latitude: currentLocation.latitude,
+      longitude: currentLocation.longitude
+    } : null);
+
+    if (!locationToUse) {
       toast({
         title: "Location required",
-        description: "Please detect your location first before searching for attractions",
+        description: "Please detect your location or enter a location manually",
         variant: "destructive"
       });
       return;
@@ -86,17 +95,52 @@ export function useNearbyPlaces(searchRadius = 1500) {
     }
 
     setIsLoading(true);
-    console.log('Searching for places near:', currentLocation);
+    console.log('Searching for places near:', locationToUse);
     
     try {
       const { places } = window.google.maps;
       const service = new places.PlacesService(document.createElement('div'));
       
+      // Get location insights first
+      const getLocationInsights = () => {
+        return new Promise<string>((resolve) => {
+          const textSearchRequest = {
+            query: `tourist information about ${locationToUse.name}`,
+            type: 'point_of_interest'
+          };
+          
+          service.textSearch(textSearchRequest, (results, status) => {
+            if (status === window.google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
+              const firstResult = results[0];
+              let insightText = `${locationToUse.name} is `;
+              
+              if (firstResult.name) insightText += `home to ${firstResult.name}. `;
+              if (firstResult.formatted_address) insightText += `Located at ${firstResult.formatted_address}. `;
+              if (firstResult.rating) insightText += `This area has an average rating of ${firstResult.rating}/5 based on visitor reviews. `;
+              if (firstResult.types && firstResult.types.length > 0) {
+                const readableTypes = firstResult.types
+                  .map(type => type.replace(/_/g, ' '))
+                  .join(', ');
+                insightText += `Known for: ${readableTypes}.`;
+              }
+              
+              resolve(insightText);
+            } else {
+              resolve(`${locationToUse.name} - Explore this location and discover nearby attractions.`);
+            }
+          });
+        });
+      };
+      
+      const insights = await getLocationInsights();
+      setLocationInsights(insights);
+      
+      // Now search for nearby places
       service.nearbySearch(
         {
           location: { 
-            lat: currentLocation.latitude, 
-            lng: currentLocation.longitude 
+            lat: locationToUse.latitude, 
+            lng: locationToUse.longitude 
           },
           radius: searchRadius,
           type: 'tourist_attraction'
@@ -132,13 +176,13 @@ export function useNearbyPlaces(searchRadius = 1500) {
             
             toast({
               title: "Nearby attractions found",
-              description: `Found ${recommendations.length} attractions near your location`
+              description: `Found ${recommendations.length} attractions near ${locationToUse.name}`
             });
           } else {
             console.error('Places API error or no results:', status);
             toast({
               title: "No attractions found",
-              description: "We couldn't find attractions near your location. Try expanding your search radius.",
+              description: "We couldn't find attractions near this location. Try expanding your search radius.",
               variant: "destructive"
             });
             setPlaces([]);
@@ -157,7 +201,7 @@ export function useNearbyPlaces(searchRadius = 1500) {
     }
   }, [currentLocation, searchRadius, isApiLoaded]);
 
-  return { places, isLoading, isApiLoaded, searchNearbyPlaces };
+  return { places, isLoading, isApiLoaded, locationInsights, searchNearbyPlaces };
 }
 
 // Add type definition for Google Maps

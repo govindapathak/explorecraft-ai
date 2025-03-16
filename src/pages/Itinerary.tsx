@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { Recommendation } from '@/components/RecommendationTile';
 import { useLocation } from '@/hooks/useLocation';
 import { useNearbyPlaces } from '@/hooks/useNearbyPlaces';
+import ManualLocationInput from '@/components/ManualLocationInput';
 
 const Itinerary = () => {
   const [items, setItems] = useState<Recommendation[]>([
@@ -51,7 +52,7 @@ const Itinerary = () => {
   ]);
   
   const { currentLocation, isLocating, getCurrentLocation } = useLocation();
-  const { places, isLoading, isApiLoaded, searchNearbyPlaces } = useNearbyPlaces();
+  const { places, isLoading, isApiLoaded, locationInsights, searchNearbyPlaces } = useNearbyPlaces();
   
   // When places are loaded, update the items
   useEffect(() => {
@@ -103,6 +104,10 @@ const Itinerary = () => {
     }
   };
 
+  const handleManualLocation = (location: { name: string; latitude: number; longitude: number }) => {
+    searchNearbyPlaces(location);
+  };
+
   const handleReorderItems = (reorderedItems: Recommendation[]) => {
     setItems(reorderedItems);
   };
@@ -150,7 +155,7 @@ const Itinerary = () => {
               {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button 
               size="sm" 
               variant="outline" 
@@ -164,16 +169,32 @@ const Itinerary = () => {
               )}
               {isLocating ? 'Detecting...' : isLoading ? 'Finding places...' : 'Find nearby attractions'}
             </Button>
+            
+            <ManualLocationInput 
+              onLocationSubmit={handleManualLocation}
+              isLoading={isLoading}
+            />
+            
             <Button size="sm" variant="outline" onClick={handleShareItinerary}>
               <Share2 className="h-4 w-4 mr-2" />
               Share
             </Button>
+            
             <Button size="sm" onClick={handleSaveItinerary}>
               <Calendar className="h-4 w-4 mr-2" />
               Save
             </Button>
           </div>
         </div>
+
+        {locationInsights && (
+          <Alert className="bg-primary/10 border-primary/20">
+            <Info className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-primary-foreground">
+              {locationInsights}
+            </AlertDescription>
+          </Alert>
+        )}
 
         {currentLocation && !isLoading && places.length === 0 && (
           <Alert>
