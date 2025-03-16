@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { MapPin, Navigation, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -16,27 +16,96 @@ const LocationSelector = ({ onLocationSelected }: LocationSelectorProps) => {
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<{ name: string; coords: { lat: number; lng: number } }[]>([]);
   const { currentLocation, isLocating, getCurrentLocation } = useLocation();
+  const autocompleteService = useRef<google.maps.places.AutocompleteService | null>(null);
+  const placesService = useRef<google.maps.places.PlacesService | null>(null);
+  const sessionToken = useRef<google.maps.places.AutocompleteSessionToken | null>(null);
 
-  // Simulated search function (would be replaced with actual API call)
-  const searchLocations = (query: string) => {
-    if (!query.trim()) return [];
+  // Initialize Google Maps places services
+  useEffect(() => {
+    if (window.google?.maps?.places) {
+      if (!autocompleteService.current) {
+        autocompleteService.current = new window.google.maps.places.AutocompleteService();
+      }
+      
+      if (!placesService.current) {
+        const placesDiv = document.createElement('div');
+        placesService.current = new window.google.maps.places.PlacesService(placesDiv);
+      }
+      
+      if (!sessionToken.current) {
+        sessionToken.current = new window.google.maps.places.AutocompleteSessionToken();
+      }
+    }
+  }, []);
+
+  const searchLocations = async (query: string) => {
+    if (!query.trim() || !autocompleteService.current || !placesService.current) return [];
     
-    // Simulated data
-    return [
-      { name: `${query} City Center`, coords: { lat: 40.7128, lng: -74.006 } },
-      { name: `${query} Downtown`, coords: { lat: 40.7168, lng: -74.016 } },
-      { name: `${query} Old Town`, coords: { lat: 40.7228, lng: -74.026 } },
-    ];
+    try {
+      // Get predictions using AutocompleteService
+      const { predictions } = await new Promise<{ predictions: google.maps.places.AutocompletePrediction[] }>((resolve, reject) => {
+        autocompleteService.current!.getPlacePredictions(
+          {
+            input: query,
+            types: ['geocode', '(cities)'],
+            sessionToken: sessionToken.current!
+          },
+          (predictions, status) => {
+            if (status !== google.maps.places.PlacesServiceStatus.OK || !predictions) {
+              reject(new Error(`Autocomplete failed: ${status}`));
+              return;
+            }
+            resolve({ predictions });
+          }
+        );
+      });
+      
+      // Convert predictions to location objects with coordinates
+      const places = await Promise.all(
+        predictions.slice(0, 3).map(async (prediction) => {
+          const placeDetails = await new Promise<google.maps.places.PlaceResult>((resolve, reject) => {
+            placesService.current!.getDetails(
+              {
+                placeId: prediction.place_id,
+                fields: ['name', 'geometry', 'formatted_address'],
+                sessionToken: sessionToken.current!
+              },
+              (place, status) => {
+                if (status !== google.maps.places.PlacesServiceStatus.OK || !place) {
+                  reject(new Error(`Place details failed: ${status}`));
+                  return;
+                }
+                resolve(place);
+              }
+            );
+          });
+          
+          return {
+            name: placeDetails.name || placeDetails.formatted_address || prediction.description,
+            coords: {
+              lat: placeDetails.geometry?.location?.lat() ?? 0,
+              lng: placeDetails.geometry?.location?.lng() ?? 0
+            }
+          };
+        })
+      );
+      
+      // Create a new session token after getting details (as per Google's recommendations)
+      sessionToken.current = new window.google.maps.places.AutocompleteSessionToken();
+      
+      return places;
+    } catch (error) {
+      console.error('Error searching locations:', error);
+      return [];
+    }
   };
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     setIsSearching(true);
     
-    // Simulate API delay
-    setTimeout(() => {
-      const results = searchLocations(searchInput);
+    try {
+      const results = await searchLocations(searchInput);
       setSearchResults(results);
-      setIsSearching(false);
       
       if (results.length === 0) {
         toast({
@@ -45,7 +114,16 @@ const LocationSelector = ({ onLocationSelected }: LocationSelectorProps) => {
           variant: "destructive",
         });
       }
-    }, 800);
+    } catch (error) {
+      console.error('Search error:', error);
+      toast({
+        title: "Search failed",
+        description: "There was a problem with the location search",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

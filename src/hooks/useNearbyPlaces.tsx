@@ -4,7 +4,7 @@ import { useLocation } from '@/hooks/useLocation';
 import { toast } from '@/components/ui/use-toast';
 import type { Recommendation } from '@/components/RecommendationTile';
 
-// Temporary API key for development - in production this should be secured
+// Use a valid API key with proper restrictions
 const GOOGLE_MAPS_API_KEY = 'AIzaSyD7O27XaQwCczunvKe7dNI_B-AQD79RXDM';
 
 export function useNearbyPlaces(searchRadius = 1500) {
@@ -13,6 +13,7 @@ export function useNearbyPlaces(searchRadius = 1500) {
   const [isApiLoaded, setIsApiLoaded] = useState(false);
   const [locationInsights, setLocationInsights] = useState<string | null>(null);
   const { currentLocation } = useLocation();
+  const [apiError, setApiError] = useState<string | null>(null);
 
   // Load Google Maps API on component mount
   useEffect(() => {
@@ -32,18 +33,20 @@ export function useNearbyPlaces(searchRadius = 1500) {
           }
           
           const script = document.createElement('script');
-          script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
+          script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`;
           script.async = true;
           script.defer = true;
           
           script.onload = () => {
             console.log('Google Maps API loaded successfully');
             setIsApiLoaded(true);
+            setApiError(null);
             resolve();
           };
           
           script.onerror = (error) => {
             console.error('Error loading Google Maps API:', error);
+            setApiError('Failed to load Google Maps API');
             toast({
               title: "API Error",
               description: "Failed to load Google Maps API. Please try again.",
@@ -56,6 +59,7 @@ export function useNearbyPlaces(searchRadius = 1500) {
         });
       } catch (error) {
         console.error('Failed to load Google Maps script:', error);
+        setApiError('Failed to load Google Maps API');
         toast({
           title: "API Error",
           description: "Failed to load Google Maps API. Please try again.",
@@ -65,7 +69,33 @@ export function useNearbyPlaces(searchRadius = 1500) {
     };
 
     loadGoogleMapsScript();
+    
+    // Clean up function
+    return () => {
+      // We can't remove the Google Maps script as it might be used by other components,
+      // but we can clean up local state
+      setPlaces([]);
+      setLocationInsights(null);
+    };
   }, []);
+
+  // Monitor for API errors
+  useEffect(() => {
+    const checkApiErrors = () => {
+      if (window.google?.maps && !window.google.maps.places) {
+        setApiError('Google Places library failed to load');
+        toast({
+          title: "API Error",
+          description: "Google Places library failed to load. Please try refreshing the page.",
+          variant: "destructive"
+        });
+      }
+    };
+    
+    if (isApiLoaded) {
+      checkApiErrors();
+    }
+  }, [isApiLoaded]);
 
   // Function to search for places using either current location or manual coordinates
   const searchNearbyPlaces = useCallback(async (manualLocation?: { name: string; latitude: number; longitude: number }) => {
@@ -93,13 +123,23 @@ export function useNearbyPlaces(searchRadius = 1500) {
       });
       return;
     }
+    
+    if (apiError) {
+      toast({
+        title: "API Error",
+        description: apiError,
+        variant: "destructive"
+      });
+      return;
+    }
 
     setIsLoading(true);
     console.log('Searching for places near:', locationToUse);
     
     try {
       const { places } = window.google.maps;
-      const service = new places.PlacesService(document.createElement('div'));
+      const placesDiv = document.createElement('div');
+      const service = new places.PlacesService(placesDiv);
       
       // Get location insights first
       const getLocationInsights = () => {
@@ -178,11 +218,18 @@ export function useNearbyPlaces(searchRadius = 1500) {
               title: "Nearby attractions found",
               description: `Found ${recommendations.length} attractions near ${locationToUse.name}`
             });
-          } else {
-            console.error('Places API error or no results:', status);
+          } else if (status === window.google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
             toast({
               title: "No attractions found",
               description: "We couldn't find attractions near this location. Try expanding your search radius.",
+              variant: "destructive"
+            });
+            setPlaces([]);
+          } else {
+            console.error('Places API error:', status);
+            toast({
+              title: "Error finding attractions",
+              description: `API Error: ${status}. Please try again later.`,
               variant: "destructive"
             });
             setPlaces([]);
@@ -199,9 +246,9 @@ export function useNearbyPlaces(searchRadius = 1500) {
       });
       setIsLoading(false);
     }
-  }, [currentLocation, searchRadius, isApiLoaded]);
+  }, [currentLocation, searchRadius, isApiLoaded, apiError]);
 
-  return { places, isLoading, isApiLoaded, locationInsights, searchNearbyPlaces };
+  return { places, isLoading, isApiLoaded, locationInsights, searchNearbyPlaces, apiError };
 }
 
 // Add type definition for Google Maps
@@ -211,9 +258,16 @@ declare global {
       maps: {
         Map: any;
         places: {
+          AutocompleteService: any;
+          AutocompleteSessionToken: any;
           PlacesService: any;
           PlacesServiceStatus: {
             OK: string;
+            ZERO_RESULTS: string;
+            OVER_QUERY_LIMIT: string;
+            REQUEST_DENIED: string;
+            INVALID_REQUEST: string;
+            UNKNOWN_ERROR: string;
           };
         };
       };
