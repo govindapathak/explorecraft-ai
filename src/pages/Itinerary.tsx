@@ -1,11 +1,13 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ItineraryList from '@/components/ItineraryList';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Calendar, Share2 } from 'lucide-react';
+import { ArrowLeft, Calendar, Share2, MapPin, Loader2 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import type { Recommendation } from '@/components/RecommendationTile';
+import { useLocation } from '@/hooks/useLocation';
+import { useNearbyPlaces } from '@/hooks/useNearbyPlaces';
 
 const Itinerary = () => {
   const [items, setItems] = useState<Recommendation[]>([
@@ -46,6 +48,42 @@ const Itinerary = () => {
       tags: ['Italian', 'Food', 'Market', 'Restaurant']
     }
   ]);
+  
+  const { currentLocation, isLocating, getCurrentLocation } = useLocation();
+  const { places, isLoading } = useNearbyPlaces();
+  
+  // When places are loaded, update the items
+  useEffect(() => {
+    if (places.length > 0) {
+      // Merge new places with existing ones, avoiding duplicates
+      setItems(prevItems => {
+        const existingIds = new Set(prevItems.map(item => item.id));
+        const newPlaces = places.filter(place => !existingIds.has(place.id));
+        return [...prevItems, ...newPlaces];
+      });
+      
+      toast({
+        title: "Itinerary updated",
+        description: `Added ${places.length} nearby attractions to your itinerary.`
+      });
+    }
+  }, [places]);
+
+  const handleDetectLocation = async () => {
+    try {
+      await getCurrentLocation();
+      toast({
+        title: "Location detected",
+        description: "Finding attractions near you..."
+      });
+    } catch (error) {
+      toast({
+        title: "Location error",
+        description: "Unable to detect your location. Please check your permissions.",
+        variant: "destructive"
+      });
+    }
+  };
 
   const handleReorderItems = (reorderedItems: Recommendation[]) => {
     setItems(reorderedItems);
@@ -95,6 +133,19 @@ const Itinerary = () => {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={handleDetectLocation}
+              disabled={isLocating || isLoading}
+            >
+              {isLocating || isLoading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <MapPin className="h-4 w-4 mr-2" />
+              )}
+              {isLocating ? 'Detecting...' : isLoading ? 'Finding places...' : 'Find nearby attractions'}
+            </Button>
             <Button size="sm" variant="outline" onClick={handleShareItinerary}>
               <Share2 className="h-4 w-4 mr-2" />
               Share
