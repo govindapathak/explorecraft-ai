@@ -3,8 +3,9 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ItineraryList from '@/components/ItineraryList';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Calendar, Share2, MapPin, Loader2 } from 'lucide-react';
+import { ArrowLeft, Calendar, Share2, MapPin, Loader2, Info } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { Recommendation } from '@/components/RecommendationTile';
 import { useLocation } from '@/hooks/useLocation';
 import { useNearbyPlaces } from '@/hooks/useNearbyPlaces';
@@ -50,7 +51,7 @@ const Itinerary = () => {
   ]);
   
   const { currentLocation, isLocating, getCurrentLocation } = useLocation();
-  const { places, isLoading } = useNearbyPlaces();
+  const { places, isLoading, isApiLoaded, searchNearbyPlaces } = useNearbyPlaces();
   
   // When places are loaded, update the items
   useEffect(() => {
@@ -62,26 +63,43 @@ const Itinerary = () => {
         return [...prevItems, ...newPlaces];
       });
       
-      toast({
-        title: "Itinerary updated",
-        description: `Added ${places.length} nearby attractions to your itinerary.`
-      });
+      if (places.length > 0) {
+        toast({
+          title: "Itinerary updated",
+          description: `Added ${places.length} nearby attractions to your itinerary.`
+        });
+      }
     }
   }, [places]);
 
   const handleDetectLocation = async () => {
     try {
-      await getCurrentLocation();
-      toast({
-        title: "Location detected",
-        description: "Finding attractions near you..."
-      });
+      const location = await getCurrentLocation();
+      
+      if (location) {
+        toast({
+          title: "Location detected",
+          description: `Found you at: ${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`
+        });
+        
+        // Now search for places
+        searchNearbyPlaces();
+      }
     } catch (error) {
+      console.error('Location detection error:', error);
       toast({
         title: "Location error",
         description: "Unable to detect your location. Please check your permissions.",
         variant: "destructive"
       });
+    }
+  };
+
+  const handleFindNearbyAttractions = () => {
+    if (!currentLocation) {
+      handleDetectLocation();
+    } else {
+      searchNearbyPlaces();
     }
   };
 
@@ -136,7 +154,7 @@ const Itinerary = () => {
             <Button 
               size="sm" 
               variant="outline" 
-              onClick={handleDetectLocation}
+              onClick={handleFindNearbyAttractions}
               disabled={isLocating || isLoading}
             >
               {isLocating || isLoading ? (
@@ -156,6 +174,15 @@ const Itinerary = () => {
             </Button>
           </div>
         </div>
+
+        {currentLocation && !isLoading && places.length === 0 && (
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              Location detected, but no attractions found nearby. Try a different location or increase the search radius.
+            </AlertDescription>
+          </Alert>
+        )}
 
         <ItineraryList 
           items={items}
