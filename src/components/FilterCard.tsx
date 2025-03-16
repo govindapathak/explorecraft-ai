@@ -1,6 +1,5 @@
-
 import { useState } from 'react';
-import { Check, Wheelchair, Cloud, Star, Car } from 'lucide-react';
+import { Check, Accessibility, Cloud, Star, Car } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { 
@@ -34,7 +33,7 @@ const FilterCard = ({ onFiltersChanged }: FilterCardProps) => {
     { 
       id: 'accessibility', 
       name: 'Accessibility', 
-      icon: <Wheelchair className="h-5 w-5" />,
+      icon: <Accessibility className="h-5 w-5" />,
       description: 'Pram/wheelchair accessible places'
     },
     { 

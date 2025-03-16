@@ -1,6 +1,5 @@
-
 import { useState } from 'react';
-import { MapPin, Star, Clock, Plus, Check, Coffee, Utensils, Camera, Music, Bicycle } from 'lucide-react';
+import { MapPin, Star, Clock, Plus, Check, Coffee, Utensils, Camera, Music, Bike } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -34,7 +33,7 @@ const getIconForType = (type: string) => {
     case 'attraction':
       return <Camera className="h-4 w-4" />;
     case 'activity':
-      return <Bicycle className="h-4 w-4" />;
+      return <Bike className="h-4 w-4" />;
     case 'entertainment':
       return <Music className="h-4 w-4" />;
     default:
