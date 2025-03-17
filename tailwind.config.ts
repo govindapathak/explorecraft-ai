@@ -109,6 +109,10 @@ export default {
 				'float': {
 					'0%, 100%': { transform: 'translateY(0)' },
 					'50%': { transform: 'translateY(-5px)' },
+				},
+				'bounce-light': {
+					'0%, 100%': { transform: 'translateY(0)' },
+					'50%': { transform: 'translateY(-10px)' },
 				}
 			},
 			animation: {
@@ -121,6 +125,7 @@ export default {
 				'scale-in': 'scale-in 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
 				'pulse-subtle': 'pulse-subtle 3s infinite ease-in-out',
 				'float': 'float 6s infinite ease-in-out',
+				'bounce-light': 'bounce-light 3s infinite ease-in-out',
 			},
 			backdropBlur: {
 				xs: '2px',
@@ -133,6 +138,13 @@ export default {
 				'glass-hover': '0 4px 30px rgba(0, 0, 0, 0.1)',
 				'button': '0 1px 2px rgba(0, 0, 0, 0.05)',
 				'card': '0 8px 30px rgba(0, 0, 0, 0.08)',
+				'fun': '0 6px 0px rgba(155, 135, 245, 0.5)',
+				'fun-hover': '0 8px 0px rgba(155, 135, 245, 0.7)',
+			},
+			backgroundImage: {
+				'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+				'gradient-fun': 'linear-gradient(135deg, #9b87f5 0%, #fef7cd 100%)',
+				'gradient-funky': 'linear-gradient(90deg, hsla(277, 75%, 84%, 1) 0%, hsla(297, 50%, 51%, 1) 100%)',
 			}
 		}
 	},

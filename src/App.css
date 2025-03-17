@@ -1,3 +1,4 @@
+
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -12,10 +13,10 @@
   transition: filter 300ms;
 }
 .logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
+  filter: drop-shadow(0 0 2em #9b87f5aa);
 }
 .logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+  filter: drop-shadow(0 0 2em #d946efaa);
 }
 
 @keyframes logo-spin {
@@ -35,8 +36,47 @@
 
 .card {
   padding: 2em;
+  border-radius: var(--radius);
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 4px 0px rgba(155, 135, 245, 0.3);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 0px rgba(155, 135, 245, 0.5);
 }
 
 .read-the-docs {
-  color: #888;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.9em;
+  font-weight: 500;
+}
+
+.funky-bg {
+  background-image: linear-gradient(90deg, hsla(277, 75%, 84%, 1) 0%, hsla(297, 50%, 51%, 1) 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.fun-button {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-radius: var(--radius);
+  padding: 0.5em 1.5em;
+  font-weight: 600;
+  box-shadow: 0 5px 0px rgba(155, 135, 245, 0.5);
+  transition: all 0.2s ease;
+}
+
+.fun-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 0px rgba(155, 135, 245, 0.7);
+}
+
+.fun-button:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0px rgba(155, 135, 245, 0.5);
 }
