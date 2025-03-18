@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from '@/components/ui/use-toast';
 
@@ -279,22 +278,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     </AuthContext.Provider>
   );
 };
-
-// Add TypeScript interface for Google object on window
-declare global {
-  interface Window {
-    google?: {
-      accounts: {
-        id: {
-          initialize: (config: any) => void;
-          prompt: (notification?: any) => void;
-          renderButton: (element: HTMLElement, options: any) => void;
-          disableAutoSelect: () => void;
-        };
-      };
-    };
-  }
-}
 
 export const useAuth = () => {
   const context = useContext(AuthContext);

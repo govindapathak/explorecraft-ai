@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useLocation } from '@/hooks/useLocation';
 import { toast } from '@/components/ui/use-toast';
@@ -132,28 +131,4 @@ export function useNearbyPlaces(searchRadius = 1500) {
   }, [currentLocation, searchRadius, isApiLoaded, apiError]);
 
   return { places, isLoading, isApiLoaded, locationInsights, searchNearbyPlaces, apiError };
-}
-
-// Add type definition for Google Maps
-declare global {
-  interface Window {
-    google: {
-      maps: {
-        Map: any;
-        places: {
-          AutocompleteService: any;
-          AutocompleteSessionToken: any;
-          PlacesService: any;
-          PlacesServiceStatus: {
-            OK: string;
-            ZERO_RESULTS: string;
-            OVER_QUERY_LIMIT: string;
-            REQUEST_DENIED: string;
-            INVALID_REQUEST: string;
-            UNKNOWN_ERROR: string;
-          };
-        };
-      };
-    };
-  }
 }
