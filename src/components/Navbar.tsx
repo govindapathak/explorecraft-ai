@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { MapPin, Menu, X, User } from 'lucide-react';
+import { MapPin, Menu, X, User, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -10,6 +10,7 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const isHomePage = location.pathname === "/";
 
   useEffect(() => {
     const handleScroll = () => {
@@ -42,6 +43,15 @@ const Navbar = () => {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-6">
+          {!isHomePage && (
+            <Link 
+              to="/"
+              className="transition-colors text-sm font-medium hover:text-primary flex items-center gap-1"
+            >
+              <Home className="h-4 w-4" />
+              <span>Home</span>
+            </Link>
+          )}
           <Link 
             to="/dashboard" 
             className={cn(
@@ -94,6 +104,15 @@ const Navbar = () => {
       {isMobileMenuOpen && (
         <div className="md:hidden bg-background border-t border-border/50 animate-slide-in-right">
           <div className="container py-4 px-4 flex flex-col space-y-4">
+            {!isHomePage && (
+              <Link 
+                to="/" 
+                className="py-2 px-4 rounded-lg transition-colors hover:bg-primary/5 flex items-center gap-2"
+              >
+                <Home className="h-4 w-4" />
+                Home
+              </Link>
+            )}
             <Link 
               to="/dashboard" 
               className={cn(

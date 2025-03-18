@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ItineraryList from '@/components/ItineraryList';
+import IconFilters, { FilterCategory } from '@/components/IconFilters';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Calendar, Share2, MapPin, Loader2, Info } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
@@ -51,8 +53,10 @@ const Itinerary = () => {
     }
   ]);
   
+  const [iconFilter, setIconFilter] = useState<FilterCategory | null>(null);
   const { currentLocation, isLocating, getCurrentLocation } = useLocation();
   const { places, isLoading, isApiLoaded, locationInsights, searchNearbyPlaces } = useNearbyPlaces();
+  const isMobile = useIsMobile();
   
   // When places are loaded, update the items
   useEffect(() => {
@@ -72,6 +76,12 @@ const Itinerary = () => {
       }
     }
   }, [places]);
+
+  const handleIconFilterChange = (filter: FilterCategory | null) => {
+    setIconFilter(filter);
+    // In a real app, this would filter the items based on the selected category
+    console.log('Icon filter changed:', filter);
+  };
 
   const handleDetectLocation = async () => {
     try {
@@ -185,6 +195,16 @@ const Itinerary = () => {
               Save
             </Button>
           </div>
+        </div>
+
+        {/* Icon Filters */}
+        <div className="p-4 bg-card rounded-lg border">
+          <h3 className="font-medium mb-3">Filter by Experience Type</h3>
+          <IconFilters 
+            vertical={!isMobile} 
+            onFilterChange={handleIconFilterChange}
+            className={isMobile ? "justify-center" : ""}
+          />
         </div>
 
         {locationInsights && (

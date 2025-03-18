@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import { useLocation } from '@/hooks/useLocation';
 import { Recommendation } from '@/components/RecommendationTile';
 import FilterCard, { SelectedFilters } from '@/components/FilterCard';
+import IconFilters, { FilterCategory } from '@/components/IconFilters';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { MapPin, Map, LayoutGrid } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
@@ -12,12 +14,20 @@ const Dashboard = () => {
   const [selectedFilters, setSelectedFilters] = useState<SelectedFilters>({});
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [selectedItems, setSelectedItems] = useState<Recommendation[]>([]);
+  const [iconFilter, setIconFilter] = useState<FilterCategory | null>(null);
   const { currentLocation, isLocating, getCurrentLocation } = useLocation();
+  const isMobile = useIsMobile();
 
   const handleFiltersChanged = (filters: SelectedFilters) => {
     setSelectedFilters(filters);
     // In a real app, this would trigger a API call to get recommendations based on filters
     console.log('Filters updated:', filters);
+  };
+
+  const handleIconFilterChange = (filter: FilterCategory | null) => {
+    setIconFilter(filter);
+    // In a real app, this would trigger an API call to filter recommendations
+    console.log('Icon filter changed:', filter);
   };
 
   const handleLocationDetect = async () => {
@@ -93,8 +103,19 @@ const Dashboard = () => {
         <p className="text-muted-foreground">Find recommendations based on your preferences</p>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-6">
+        {/* Sidebar with Filters */}
+        <div className="space-y-6">
+          {/* Icon Filters - Show vertically on desktop, horizontally on mobile */}
+          <div className="bg-card rounded-lg p-4 shadow-sm border">
+            <h3 className="font-medium mb-3">Quick Filters</h3>
+            <IconFilters 
+              vertical={!isMobile} 
+              onFilterChange={handleIconFilterChange}
+              className={isMobile ? "justify-center" : ""}
+            />
+          </div>
+          
           <FilterCard onFiltersChanged={handleFiltersChanged} />
           
           <div className="bg-card rounded-lg p-4 shadow-sm border">
@@ -120,7 +141,8 @@ const Dashboard = () => {
           </div>
         </div>
         
-        <div className="lg:col-span-2">
+        {/* Main Content */}
+        <div>
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Recommendations</h2>
             <div className="flex gap-2">
@@ -134,6 +156,13 @@ const Dashboard = () => {
               </Button>
             </div>
           </div>
+          
+          {/* Mobile only - horizontal filter strip */}
+          {isMobile && (
+            <div className="mb-4 -mx-2 px-2 py-3 overflow-x-auto">
+              <IconFilters vertical={false} onFilterChange={handleIconFilterChange} />
+            </div>
+          )}
           
           {recommendations.length === 0 ? (
             <div className="text-center py-12 border-2 border-dashed rounded-lg">
