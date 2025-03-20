@@ -4,12 +4,14 @@ import { toast } from '@/components/ui/use-toast';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import { useGoogleMapsApi } from '@/hooks/useGoogleMapsApi';
 
 interface GooglePlacePickerProps {
   onPlaceSelected: (place: {
     name: string;
     coords: { lat: number; lng: number };
   }) => void;
+  onError?: () => void;
 }
 
 // Add type definitions for the extended component library
@@ -26,12 +28,16 @@ declare global {
   }
 }
 
-const GooglePlacePicker = ({ onPlaceSelected }: GooglePlacePickerProps) => {
+const GooglePlacePicker = ({ onPlaceSelected, onError }: GooglePlacePickerProps) => {
   const placePickerRef = useRef<HTMLElement | null>(null);
   const [isComponentLoaded, setIsComponentLoaded] = useState(false);
   const [isScriptLoading, setIsScriptLoading] = useState(true);
   const [loadAttempts, setLoadAttempts] = useState(0);
   const [selectedPlace, setSelectedPlace] = useState<any | null>(null);
+  const { isApiLoaded, apiError, retryLoadingApi } = useGoogleMapsApi();
+
+  // Use a ref to track if we've already triggered the error callback
+  const errorTriggeredRef = useRef(false);
 
   useEffect(() => {
     // Check if script is already loaded
@@ -41,7 +47,7 @@ const GooglePlacePicker = ({ onPlaceSelected }: GooglePlacePickerProps) => {
     }
 
     // Max retry attempts to prevent infinite loading
-    const maxAttempts = 3;
+    const maxAttempts = 2;
     
     const checkComponentAvailability = setInterval(() => {
       // Check if the custom element is defined
@@ -51,26 +57,37 @@ const GooglePlacePicker = ({ onPlaceSelected }: GooglePlacePickerProps) => {
         clearInterval(checkComponentAvailability);
       } else {
         setLoadAttempts(prev => {
+          const newAttempts = prev + 1;
           // If exceeded max attempts, stop checking
-          if (prev >= maxAttempts) {
+          if (newAttempts >= maxAttempts) {
             clearInterval(checkComponentAvailability);
             setIsScriptLoading(false);
             console.error('Failed to load place picker component after multiple attempts');
-            toast({
-              title: "Component failed to load",
-              description: "Please try using manual location input instead",
-              variant: "destructive"
-            });
-            return prev;
+            
+            // Only call the error callback if it hasn't been triggered yet
+            if (onError && !errorTriggeredRef.current) {
+              errorTriggeredRef.current = true;
+              setTimeout(() => onError(), 0); // Use setTimeout to avoid React warnings about state updates during render
+            }
+            
+            return newAttempts;
           }
-          return prev + 1;
+          return newAttempts;
         });
       }
     }, 2000);
 
     // Cleanup interval
     return () => clearInterval(checkComponentAvailability);
-  }, []);
+  }, [onError]);
+
+  // Trigger error callback if API loading fails
+  useEffect(() => {
+    if (apiError && onError && !errorTriggeredRef.current) {
+      errorTriggeredRef.current = true;
+      setTimeout(() => onError(), 0);
+    }
+  }, [apiError, onError]);
 
   useEffect(() => {
     if (!isComponentLoaded) return;
@@ -129,6 +146,13 @@ const GooglePlacePicker = ({ onPlaceSelected }: GooglePlacePickerProps) => {
     }
   };
 
+  const handleRetry = () => {
+    retryLoadingApi();
+    setLoadAttempts(0);
+    setIsScriptLoading(true);
+    errorTriggeredRef.current = false;
+  };
+
   if (isScriptLoading) {
     return (
       <Card className="p-4 flex items-center justify-center">
@@ -138,11 +162,15 @@ const GooglePlacePicker = ({ onPlaceSelected }: GooglePlacePickerProps) => {
     );
   }
 
-  if (!isComponentLoaded && loadAttempts >= 3) {
+  if (!isComponentLoaded && loadAttempts >= 2) {
     return (
       <Card className="p-4">
         <p className="text-destructive mb-2">Google Maps component failed to load.</p>
-        <p className="text-sm text-muted-foreground">Please use manual location input instead.</p>
+        <div className="flex space-x-2 mt-3">
+          <Button variant="outline" size="sm" onClick={handleRetry}>
+            Retry Loading
+          </Button>
+        </div>
       </Card>
     );
   }

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Search, Loader2, MapPin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -13,20 +12,32 @@ import SearchResults from '@/components/location/SearchResults';
 interface ManualLocationInputProps {
   onLocationSubmit: (location: { name: string; latitude: number; longitude: number }) => void;
   isLoading?: boolean;
+  initialLocation?: { name: string; latitude: number; longitude: number };
 }
 
-const ManualLocationInput = ({ onLocationSubmit, isLoading = false }: ManualLocationInputProps) => {
-  const [locationName, setLocationName] = useState('');
+const ManualLocationInput = ({ 
+  onLocationSubmit, 
+  isLoading = false,
+  initialLocation
+}: ManualLocationInputProps) => {
+  const [locationName, setLocationName] = useState(initialLocation?.name || '');
   const [address, setAddress] = useState('');
-  const [latitude, setLatitude] = useState('');
-  const [longitude, setLongitude] = useState('');
+  const [latitude, setLatitude] = useState(initialLocation?.latitude.toString() || '');
+  const [longitude, setLongitude] = useState(initialLocation?.longitude.toString() || '');
   
   const [searchInput, setSearchInput] = useState('');
   const [searchResults, setSearchResults] = useState<Location[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
 
-  // Debounced search for location suggestions
+  useEffect(() => {
+    if (initialLocation) {
+      setLocationName(initialLocation.name);
+      setLatitude(initialLocation.latitude.toString());
+      setLongitude(initialLocation.longitude.toString());
+    }
+  }, [initialLocation]);
+
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
       if (searchInput.trim().length > 2) {
@@ -84,7 +95,6 @@ const ManualLocationInput = ({ onLocationSubmit, isLoading = false }: ManualLoca
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Basic validation
     if (!locationName.trim()) {
       toast({
         title: "Location name required",

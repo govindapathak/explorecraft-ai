@@ -9,11 +9,17 @@ import GooglePlacePicker from '@/components/GooglePlacePicker';
 interface LocationSelectorProps {
   onLocationSelected: (location: Location) => void;
   initialLocation?: Location | null;
+  onMapError?: () => void;
 }
 
-const LocationSelector = ({ onLocationSelected, initialLocation }: LocationSelectorProps) => {
+const LocationSelector = ({ 
+  onLocationSelected, 
+  initialLocation, 
+  onMapError 
+}: LocationSelectorProps) => {
   const { currentLocation, isLocating, getCurrentLocation } = useLocation();
   const [locationSet, setLocationSet] = useState(false);
+  const [googleMapsFailed, setGoogleMapsFailed] = useState(false);
 
   // Set initial location if provided
   useEffect(() => {
@@ -54,9 +60,33 @@ const LocationSelector = ({ onLocationSelected, initialLocation }: LocationSelec
     setLocationSet(true);
   };
 
+  const handleMapError = () => {
+    setGoogleMapsFailed(true);
+    if (onMapError) {
+      onMapError();
+    }
+  };
+
+  if (googleMapsFailed) {
+    return (
+      <div className="w-full">
+        <p className="text-destructive mb-3">
+          Google Maps failed to load. Please use your current location or enter a location manually.
+        </p>
+        <CurrentLocationButton 
+          onClick={handleUseCurrentLocation}
+          isLocating={isLocating}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="w-full max-w-md space-y-4">
-      <GooglePlacePicker onPlaceSelected={handlePlaceSelected} />
+      <GooglePlacePicker 
+        onPlaceSelected={handlePlaceSelected} 
+        onError={handleMapError}
+      />
       
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
