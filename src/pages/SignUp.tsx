@@ -1,8 +1,6 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,11 +8,12 @@ import { toast } from '@/components/ui/use-toast';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/hooks/useAuth';
 
-const LoginContent = () => {
+const SignUpContent = () => {
   const navigate = useNavigate();
-  const { login, isLoading, isAuthenticated } = useAuth();
+  const { signUp, isLoading, isAuthenticated } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   // Redirect to dashboard if already authenticated
   useEffect(() => {
@@ -23,23 +22,43 @@ const LoginContent = () => {
     }
   }, [isAuthenticated, navigate]);
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password) {
+    if (!email || !password || !confirmPassword) {
       toast({
         title: "Error",
-        description: "Please enter both email and password",
+        description: "Please fill in all fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (password.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters",
         variant: "destructive",
       });
       return;
     }
     
     try {
-      await login(email, password);
-      navigate('/dashboard');
+      await signUp(email, password);
+      toast({
+        title: "Success",
+        description: "Please check your email to confirm your account",
+      });
     } catch (error) {
-      // Error is handled in the useAuth hook
       console.error(error);
     }
   };
@@ -51,14 +70,14 @@ const LoginContent = () => {
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold">Welcome Back</h1>
+            <h1 className="text-3xl font-bold">Create Account</h1>
             <p className="text-muted-foreground mt-2">
-              Sign in to access your personalized travel recommendations
+              Sign up to start your personalized travel journey
             </p>
           </div>
           
           <div className="bg-card border rounded-xl shadow-sm p-6">
-            <form onSubmit={handleEmailLogin} className="space-y-4">
+            <form onSubmit={handleSignUp} className="space-y-4">
               <div className="space-y-1">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -71,17 +90,23 @@ const LoginContent = () => {
                 />
               </div>
               <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  <a href="#" className="text-xs text-primary hover:underline">
-                    Forgot Password?
-                  </a>
-                </div>
+                <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  placeholder="•••••••••"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="•••••••••"
                   required
                 />
@@ -92,16 +117,16 @@ const LoginContent = () => {
                 className="w-full"
                 disabled={isLoading}
               >
-                {isLoading ? "Signing in..." : "Sign In"}
+                {isLoading ? "Creating account..." : "Create Account"}
               </Button>
             </form>
           </div>
           
           <div className="text-center mt-6">
             <p className="text-sm text-muted-foreground">
-              Don't have an account?{" "}
-              <Link to="/signup" className="text-primary hover:underline font-medium">
-                Sign Up
+              Already have an account?{" "}
+              <Link to="/login" className="text-primary hover:underline font-medium">
+                Sign In
               </Link>
             </p>
           </div>
@@ -111,8 +136,8 @@ const LoginContent = () => {
   );
 };
 
-const Login = () => (
-  <LoginContent />
+const SignUp = () => (
+  <SignUpContent />
 );
 
-export default Login;
+export default SignUp;

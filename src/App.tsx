@@ -8,6 +8,7 @@ import AnimatedTransition from "./components/AnimatedTransition";
 import { AuthProvider } from "./hooks/useAuth";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
+import SignUp from "./pages/SignUp";
 import Dashboard from "./pages/Dashboard";
 import Itinerary from "./pages/Itinerary";
 import NotFound from "./pages/NotFound";
@@ -25,6 +26,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<SignUp />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/itinerary" element={<Itinerary />} />
               <Route path="*" element={<NotFound />} />
