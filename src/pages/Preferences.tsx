@@ -1,49 +1,20 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, X, ArrowRight, Search } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
-import { useAuth } from '@/hooks/useAuth';
-import { Input } from '@/components/ui/input';
-import IconFilters from '@/components/IconFilters';
-import LocationSelector from '@/components/LocationSelector';
 import { useLocation } from '@/hooks/useLocation';
-
-// Attraction categories
-const categories = [
-  { id: 'museums', name: 'Museums', emoji: '🏛️' },
-  { id: 'parks', name: 'Parks & Nature', emoji: '🌳' },
-  { id: 'restaurants', name: 'Food & Drinks', emoji: '🍽️' },
-  { id: 'shopping', name: 'Shopping', emoji: '🛍️' },
-  { id: 'entertainment', name: 'Entertainment', emoji: '🎭' },
-  { id: 'historical', name: 'Historical Sites', emoji: '🏰' },
-  { id: 'beaches', name: 'Beaches', emoji: '🏖️' },
-  { id: 'nightlife', name: 'Nightlife', emoji: '🌃' },
-  { id: 'sports', name: 'Sports', emoji: '⚽' },
-  { id: 'wellness', name: 'Spas & Wellness', emoji: '💆' },
-  { id: 'art', name: 'Art Galleries', emoji: '🎨' },
-  { id: 'tours', name: 'Tours & Activities', emoji: '🧭' },
-];
-
-interface Category {
-  id: string;
-  name: string;
-  emoji: string;
-}
-
-interface LocationData {
-  name: string;
-  coords: { lat: number; lng: number };
-}
+import LocationSection, { LocationData } from '@/components/preferences/LocationSection';
+import CategoriesSection, { Category } from '@/components/preferences/CategoriesSection';
+import CustomFiltersSection from '@/components/preferences/CustomFiltersSection';
+import QuickFiltersSection from '@/components/preferences/QuickFiltersSection';
 
 const PreferencesPage = () => {
   const navigate = useNavigate();
   const { currentLocation } = useLocation();
   const [likedCategories, setLikedCategories] = useState<string[]>([]);
   const [dislikedCategories, setDislikedCategories] = useState<string[]>([]);
-  const [customFilter, setCustomFilter] = useState('');
   const [customFilters, setCustomFilters] = useState<string[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(
     currentLocation ? {
@@ -79,21 +50,12 @@ const PreferencesPage = () => {
     }
   };
 
-  const handleAddCustomFilter = () => {
-    if (customFilter.trim() && !customFilters.includes(customFilter.trim())) {
-      setCustomFilters([...customFilters, customFilter.trim()]);
-      setCustomFilter('');
-    }
+  const handleAddCustomFilter = (filter: string) => {
+    setCustomFilters([...customFilters, filter]);
   };
 
   const handleRemoveCustomFilter = (filter: string) => {
     setCustomFilters(customFilters.filter(f => f !== filter));
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleAddCustomFilter();
-    }
   };
 
   const handleLocationSelected = (location: LocationData) => {
@@ -120,7 +82,6 @@ const PreferencesPage = () => {
     }
 
     // Store preferences in localStorage for now
-    // In a real app, this would likely be stored in a database
     localStorage.setItem('userPreferences', JSON.stringify({
       location: selectedLocation,
       likes: likedCategories,
@@ -142,100 +103,27 @@ const PreferencesPage = () => {
           </p>
         </div>
 
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Your Location</h2>
-          <Card>
-            <CardContent className="pt-6">
-              <LocationSelector onLocationSelected={handleLocationSelected} />
-              {selectedLocation && (
-                <div className="mt-4 py-2 px-3 bg-primary/10 text-primary rounded-md">
-                  Using: {selectedLocation.name}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        <LocationSection 
+          selectedLocation={selectedLocation} 
+          onLocationSelected={handleLocationSelected}
+        />
 
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Categories</h2>
-          <p className="text-sm text-muted-foreground">Tap on the icons to like or dislike categories</p>
-          
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {categories.map((category) => (
-              <Card key={category.id} className="overflow-hidden">
-                <CardContent className="p-0">
-                  <div className="flex items-center justify-between p-4">
-                    <div className="flex items-center space-x-3">
-                      <span className="text-2xl">{category.emoji}</span>
-                      <span>{category.name}</span>
-                    </div>
-                    <div className="flex space-x-1">
-                      <Button
-                        size="icon"
-                        variant={likedCategories.includes(category.id) ? "default" : "ghost"}
-                        className="h-8 w-8"
-                        onClick={() => handleLike(category)}
-                      >
-                        <Heart className={likedCategories.includes(category.id) ? "fill-current" : ""} size={16} />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant={dislikedCategories.includes(category.id) ? "destructive" : "ghost"}
-                        className="h-8 w-8"
-                        onClick={() => handleDislike(category)}
-                      >
-                        <X size={16} />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
+        <CategoriesSection 
+          likedCategories={likedCategories}
+          dislikedCategories={dislikedCategories}
+          onLike={handleLike}
+          onDislike={handleDislike}
+        />
 
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Custom Filters</h2>
-          <p className="text-sm text-muted-foreground">
-            Add specific requirements for your attractions
-          </p>
-          
-          <div className="flex space-x-2">
-            <Input
-              placeholder="e.g. pet friendly, wheelchair accessible"
-              value={customFilter}
-              onChange={(e) => setCustomFilter(e.target.value)}
-              onKeyDown={handleKeyDown}
-            />
-            <Button onClick={handleAddCustomFilter}>Add</Button>
-          </div>
-          
-          {customFilters.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-3">
-              {customFilters.map((filter) => (
-                <div 
-                  key={filter} 
-                  className="bg-secondary text-secondary-foreground py-1 px-3 rounded-full text-sm flex items-center"
-                >
-                  {filter}
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-5 w-5 ml-1 hover:bg-destructive/10" 
-                    onClick={() => handleRemoveCustomFilter(filter)}
-                  >
-                    <X size={12} />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <CustomFiltersSection
+          customFilters={customFilters}
+          onAddFilter={handleAddCustomFilter}
+          onRemoveFilter={handleRemoveCustomFilter}
+        />
 
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Quick Filters</h2>
-          <IconFilters onFilterChange={(filter) => console.log('Filter selected:', filter)} />
-        </div>
+        <QuickFiltersSection
+          onFilterChange={(filter) => console.log('Filter selected:', filter)}
+        />
 
         <Button 
           size="lg" 
