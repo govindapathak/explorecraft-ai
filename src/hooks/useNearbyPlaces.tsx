@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useLocation } from '@/hooks/useLocation';
 import { toast } from '@/components/ui/use-toast';
 import type { Recommendation } from '@/components/RecommendationTile';
-import { loadGoogleMapsScript, checkGooglePlacesAvailable } from '@/utils/googleMapsLoader';
+import { loadGoogleMapsScript, checkGooglePlacesAvailable, checkApiKeyStatus } from '@/utils/googleMapsLoader';
 import { getLocationInsights, searchNearbyAttractions } from '@/services/placesService';
 
 export function useNearbyPlaces(searchRadius = 1500) {
@@ -14,6 +14,7 @@ export function useNearbyPlaces(searchRadius = 1500) {
   const { currentLocation } = useLocation();
   const [apiError, setApiError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [apiKeyValid, setApiKeyValid] = useState<boolean | null>(null);
 
   // Load Google Maps API on component mount
   useEffect(() => {
@@ -43,6 +44,21 @@ export function useNearbyPlaces(searchRadius = 1500) {
               description: placesError,
               variant: "destructive"
             });
+            return;
+          }
+          
+          // Check if the API key is valid
+          const isKeyValid = await checkApiKeyStatus();
+          setApiKeyValid(isKeyValid);
+          
+          if (!isKeyValid) {
+            const keyError = "Google API key may have restrictions or exceeded quota";
+            setApiError(keyError);
+            toast({
+              title: "API Key Issue",
+              description: keyError,
+              variant: "destructive"
+            });
           }
         }
       } catch (err) {
@@ -65,6 +81,7 @@ export function useNearbyPlaces(searchRadius = 1500) {
   const retryLoadingApi = useCallback(() => {
     setRetryCount(prev => prev + 1);
     setApiError(null);
+    setApiKeyValid(null);
   }, []);
 
   // Function to search for places using either current location or manual coordinates
@@ -112,6 +129,15 @@ export function useNearbyPlaces(searchRadius = 1500) {
       });
       return;
     }
+    
+    if (apiKeyValid === false) {
+      toast({
+        title: "API Key Issue",
+        description: "Your Google Maps API key may have restrictions or exceeded quota limits",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setIsLoading(true);
     console.log('Searching for places near:', locationToUse);
@@ -149,7 +175,7 @@ export function useNearbyPlaces(searchRadius = 1500) {
     } finally {
       setIsLoading(false);
     }
-  }, [currentLocation, searchRadius, isApiLoaded, apiError]);
+  }, [currentLocation, searchRadius, isApiLoaded, apiError, apiKeyValid]);
 
   return { 
     places, 
@@ -158,6 +184,7 @@ export function useNearbyPlaces(searchRadius = 1500) {
     locationInsights, 
     searchNearbyPlaces, 
     apiError,
+    apiKeyValid,
     retryLoadingApi
   };
 }

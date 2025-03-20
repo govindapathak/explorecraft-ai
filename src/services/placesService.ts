@@ -43,6 +43,15 @@ export async function getLocationInsights(location: Location): Promise<string> {
         }
         
         resolve(insightText);
+      } else if (status === window.google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+        console.warn('No results for location insights');
+        resolve(`${location.name} - Explore this location and discover nearby attractions.`);
+      } else if (status === window.google.maps.places.PlacesServiceStatus.REQUEST_DENIED) {
+        console.error('Location insights request denied - API key may have restrictions');
+        resolve(`${location.name} - API request denied. Your API key may have restrictions.`);
+      } else if (status === window.google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT) {
+        console.error('Location insights over query limit - API quota may be exceeded');
+        resolve(`${location.name} - API query limit exceeded. Try again later.`);
       } else {
         console.warn('No results for location insights, status:', status);
         resolve(`${location.name} - Explore this location and discover nearby attractions.`);
@@ -66,62 +75,82 @@ export async function searchNearbyAttractions(
 
     const { places } = window.google.maps;
     const placesDiv = document.createElement('div');
-    const service = new places.PlacesService(placesDiv);
     
-    const requestParams = {
-      location: { 
-        lat: location.latitude, 
-        lng: location.longitude 
-      },
-      radius: searchRadius,
-      type: 'tourist_attraction'
-    };
-    
-    console.log('Nearby search request:', JSON.stringify(requestParams));
-    
-    service.nearbySearch(
-      requestParams,
-      (results, status, pagination) => {
-        console.log('Places API results status:', status);
-        console.log('Places API results count:', results?.length || 0);
-        
-        if (status === window.google.maps.places.PlacesServiceStatus.OK && results) {
-          const recommendations: Recommendation[] = results
-            .filter(place => place.name && place.vicinity)
-            .map((place, index) => {
-              // Get photo URL if available
-              const photoUrl = place.photos?.[0]?.getUrl({ maxWidth: 800, maxHeight: 600 });
+    // Verify the PlacesService can be created
+    try {
+      const service = new places.PlacesService(placesDiv);
+      
+      const requestParams = {
+        location: { 
+          lat: location.latitude, 
+          lng: location.longitude 
+        },
+        radius: searchRadius,
+        type: 'tourist_attraction'
+      };
+      
+      console.log('Nearby search request:', JSON.stringify(requestParams));
+      
+      service.nearbySearch(
+        requestParams,
+        (results, status, pagination) => {
+          console.log('Places API results status:', status);
+          console.log('Places API results count:', results?.length || 0);
+          
+          if (status === window.google.maps.places.PlacesServiceStatus.OK && results) {
+            const recommendations: Recommendation[] = results
+              .filter(place => place.name && place.vicinity)
+              .map((place, index) => {
+                // Get photo URL if available
+                let photoUrl = null;
+                try {
+                  photoUrl = place.photos?.[0]?.getUrl({ maxWidth: 800, maxHeight: 600 });
+                } catch (error) {
+                  console.error('Error getting photo URL:', error);
+                }
+                
+                const recommendation: Recommendation = {
+                  id: place.place_id || `place-${index}`,
+                  name: place.name || 'Unknown Place',
+                  type: determineAttractationType(place),
+                  image: photoUrl || 'https://images.unsplash.com/photo-1617339860293-978cf33cce43?q=80&w=1000',
+                  location: place.vicinity || 'Unknown location',
+                  rating: place.rating || 4.0,
+                  description: place.types?.join(', ') || 'Tourist attraction',
+                  duration: '1-2 hours',
+                  price: place.price_level ? '$'.repeat(place.price_level) : 'Varies',
+                  tags: place.types?.map((type: string) => 
+                    type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+                  ) || ['Attraction']
+                };
+                
+                return recommendation;
+              });
               
-              const recommendation: Recommendation = {
-                id: place.place_id || `place-${index}`,
-                name: place.name || 'Unknown Place',
-                type: determineAttractationType(place),
-                image: photoUrl || 'https://images.unsplash.com/photo-1617339860293-978cf33cce43?q=80&w=1000',
-                location: place.vicinity || 'Unknown location',
-                rating: place.rating || 4.0,
-                description: place.types?.join(', ') || 'Tourist attraction',
-                duration: '1-2 hours',
-                price: place.price_level ? '$'.repeat(place.price_level) : 'Varies',
-                tags: place.types?.map((type: string) => 
-                  type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-                ) || ['Attraction']
-              };
-              
-              return recommendation;
-            });
-            
-          console.log('Formatted recommendations:', recommendations.length);
-          resolve(recommendations);
-        } else if (status === window.google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
-          console.log('Zero results found for nearby attractions');
-          resolve([]);
-        } else {
-          const errorMsg = `Places API Error: ${status}`;
-          console.error(errorMsg);
-          reject(new Error(errorMsg));
+            console.log('Formatted recommendations:', recommendations.length);
+            resolve(recommendations);
+          } else if (status === window.google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+            console.log('Zero results found for nearby attractions');
+            resolve([]);
+          } else if (status === window.google.maps.places.PlacesServiceStatus.REQUEST_DENIED) {
+            const errorMsg = 'Places API request denied - API key may have restrictions';
+            console.error(errorMsg);
+            reject(new Error(errorMsg));
+          } else if (status === window.google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT) {
+            const errorMsg = 'Places API query limit exceeded - Try again later';
+            console.error(errorMsg);
+            reject(new Error(errorMsg));
+          } else {
+            const errorMsg = `Places API Error: ${status}`;
+            console.error(errorMsg);
+            reject(new Error(errorMsg));
+          }
         }
-      }
-    );
+      );
+    } catch (error) {
+      console.error('Error creating Places service:', error);
+      reject(new Error('Failed to initialize Google Places service'));
+    }
   });
 }
 
