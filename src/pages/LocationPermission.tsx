@@ -30,9 +30,23 @@ const LocationPermission = () => {
         title: "Location detected",
         description: "We found your location successfully!"
       });
+      
+      // Create location data object
+      const locationData = {
+        name: "Current Location",
+        coords: {
+          lat: currentLocation.latitude,
+          lng: currentLocation.longitude
+        }
+      };
+      
+      // Save to localStorage for persistence
+      localStorage.setItem('userLocation', JSON.stringify(locationData));
+      
       // Short delay to show the success message
       const timer = setTimeout(() => {
-        navigate('/preferences');
+        // Pass location via state to next page
+        navigate('/preferences', { state: { location: locationData } });
       }, 1500);
       return () => clearTimeout(timer);
     }
@@ -68,9 +82,9 @@ const LocationPermission = () => {
       description: `You've set your location to ${location.name}`
     });
     
-    // Navigate to preferences page
+    // Navigate to preferences page with location data
     setTimeout(() => {
-      navigate('/preferences');
+      navigate('/preferences', { state: { location: locationData } });
     }, 1500);
   };
 

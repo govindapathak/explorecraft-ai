@@ -18,7 +18,10 @@ const LocationSection = ({ selectedLocation, onLocationSelected }: LocationSecti
       <h2 className="text-xl font-semibold">Your Location</h2>
       <Card>
         <CardContent className="pt-6">
-          <LocationSelector onLocationSelected={onLocationSelected} />
+          <LocationSelector 
+            onLocationSelected={onLocationSelected} 
+            initialLocation={selectedLocation}
+          />
           {selectedLocation && (
             <div className="mt-4 py-2 px-3 bg-primary/10 text-primary rounded-md">
               Using: {selectedLocation.name}

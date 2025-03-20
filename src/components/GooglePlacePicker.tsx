@@ -29,16 +29,44 @@ declare global {
 const GooglePlacePicker = ({ onPlaceSelected }: GooglePlacePickerProps) => {
   const placePickerRef = useRef<HTMLElement | null>(null);
   const [isComponentLoaded, setIsComponentLoaded] = useState(false);
+  const [isScriptLoading, setIsScriptLoading] = useState(true);
+  const [loadAttempts, setLoadAttempts] = useState(0);
   const [selectedPlace, setSelectedPlace] = useState<any | null>(null);
 
   useEffect(() => {
+    // Check if script is already loaded
+    const isScriptPresent = document.querySelector('script[src*="@googlemaps/extended-component-library"]');
+    if (isScriptPresent) {
+      setIsScriptLoading(false);
+    }
+
+    // Max retry attempts to prevent infinite loading
+    const maxAttempts = 3;
+    
     const checkComponentAvailability = setInterval(() => {
       // Check if the custom element is defined
       if (customElements.get('gmpx-place-picker')) {
         setIsComponentLoaded(true);
+        setIsScriptLoading(false);
         clearInterval(checkComponentAvailability);
+      } else {
+        setLoadAttempts(prev => {
+          // If exceeded max attempts, stop checking
+          if (prev >= maxAttempts) {
+            clearInterval(checkComponentAvailability);
+            setIsScriptLoading(false);
+            console.error('Failed to load place picker component after multiple attempts');
+            toast({
+              title: "Component failed to load",
+              description: "Please try using manual location input instead",
+              variant: "destructive"
+            });
+            return prev;
+          }
+          return prev + 1;
+        });
       }
-    }, 500);
+    }, 2000);
 
     // Cleanup interval
     return () => clearInterval(checkComponentAvailability);
@@ -101,7 +129,7 @@ const GooglePlacePicker = ({ onPlaceSelected }: GooglePlacePickerProps) => {
     }
   };
 
-  if (!isComponentLoaded) {
+  if (isScriptLoading) {
     return (
       <Card className="p-4 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -110,24 +138,42 @@ const GooglePlacePicker = ({ onPlaceSelected }: GooglePlacePickerProps) => {
     );
   }
 
+  if (!isComponentLoaded && loadAttempts >= 3) {
+    return (
+      <Card className="p-4">
+        <p className="text-destructive mb-2">Google Maps component failed to load.</p>
+        <p className="text-sm text-muted-foreground">Please use manual location input instead.</p>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="place-picker-container w-full">
-        <gmpx-place-picker 
-          ref={placePickerRef}
-          placeholder="Search for a location" 
-          className="w-full"
-          style={{ width: '100%' }}
-        />
+        {isComponentLoaded ? (
+          <gmpx-place-picker 
+            ref={placePickerRef}
+            placeholder="Search for a location" 
+            className="w-full"
+            style={{ width: '100%' }}
+          />
+        ) : (
+          <Card className="p-4 flex items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <p className="ml-2">Initializing place picker...</p>
+          </Card>
+        )}
       </div>
       
-      <Button 
-        onClick={handleConfirmPlace} 
-        className="w-full" 
-        disabled={!selectedPlace}
-      >
-        Confirm Location
-      </Button>
+      {isComponentLoaded && (
+        <Button 
+          onClick={handleConfirmPlace} 
+          className="w-full" 
+          disabled={!selectedPlace}
+        >
+          Confirm Location
+        </Button>
+      )}
     </div>
   );
 };

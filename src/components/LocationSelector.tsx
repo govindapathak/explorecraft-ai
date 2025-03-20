@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { useLocation } from '@/hooks/useLocation';
 import { type Location } from '@/services/placesSearchService';
@@ -8,10 +8,21 @@ import GooglePlacePicker from '@/components/GooglePlacePicker';
 
 interface LocationSelectorProps {
   onLocationSelected: (location: Location) => void;
+  initialLocation?: Location | null;
 }
 
-const LocationSelector = ({ onLocationSelected }: LocationSelectorProps) => {
+const LocationSelector = ({ onLocationSelected, initialLocation }: LocationSelectorProps) => {
   const { currentLocation, isLocating, getCurrentLocation } = useLocation();
+  const [locationSet, setLocationSet] = useState(false);
+
+  // Set initial location if provided
+  useEffect(() => {
+    if (initialLocation && !locationSet) {
+      // This prevents passing the initial location multiple times
+      setLocationSet(true);
+      onLocationSelected(initialLocation);
+    }
+  }, [initialLocation, onLocationSelected, locationSet]);
   
   const handleUseCurrentLocation = async () => {
     try {
@@ -22,6 +33,7 @@ const LocationSelector = ({ onLocationSelected }: LocationSelectorProps) => {
           coords: { lat: location.latitude, lng: location.longitude }
         };
         onLocationSelected(locationData);
+        setLocationSet(true);
         
         toast({
           title: "Using current location",
@@ -37,9 +49,14 @@ const LocationSelector = ({ onLocationSelected }: LocationSelectorProps) => {
     }
   };
 
+  const handlePlaceSelected = (location: Location) => {
+    onLocationSelected(location);
+    setLocationSet(true);
+  };
+
   return (
     <div className="w-full max-w-md space-y-4">
-      <GooglePlacePicker onPlaceSelected={onLocationSelected} />
+      <GooglePlacePicker onPlaceSelected={handlePlaceSelected} />
       
       <div className="relative">
         <div className="absolute inset-0 flex items-center">

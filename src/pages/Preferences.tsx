@@ -1,6 +1,6 @@
 
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation as useRouterLocation } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
@@ -12,19 +12,47 @@ import QuickFiltersSection from '@/components/preferences/QuickFiltersSection';
 
 const PreferencesPage = () => {
   const navigate = useNavigate();
+  const routerLocation = useRouterLocation();
   const { currentLocation } = useLocation();
   const [likedCategories, setLikedCategories] = useState<string[]>([]);
   const [dislikedCategories, setDislikedCategories] = useState<string[]>([]);
   const [customFilters, setCustomFilters] = useState<string[]>([]);
-  const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(
-    currentLocation ? {
+  const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
+
+  // Initialize location from different sources
+  useEffect(() => {
+    // Try to get location from router state first (from LocationPermission page)
+    const locationFromState = routerLocation.state?.location as LocationData | undefined;
+    
+    // Then try localStorage (might be set from LocationPermission or manual input)
+    const savedLocationJSON = localStorage.getItem('userLocation');
+    const savedLocation = savedLocationJSON ? JSON.parse(savedLocationJSON) as LocationData : null;
+    
+    // Finally fallback to currentLocation from useLocation hook
+    const locationFromHook = currentLocation ? {
       name: "Current Location",
       coords: { 
         lat: currentLocation.latitude, 
         lng: currentLocation.longitude 
       }
-    } : null
-  );
+    } : null;
+    
+    // Use the first available location
+    setSelectedLocation(locationFromState || savedLocation || locationFromHook);
+    
+    // Load any saved preferences if they exist
+    const savedPrefsJSON = localStorage.getItem('userPreferences');
+    if (savedPrefsJSON) {
+      try {
+        const savedPrefs = JSON.parse(savedPrefsJSON);
+        if (savedPrefs.likes) setLikedCategories(savedPrefs.likes);
+        if (savedPrefs.dislikes) setDislikedCategories(savedPrefs.dislikes);
+        if (savedPrefs.customFilters) setCustomFilters(savedPrefs.customFilters);
+      } catch (e) {
+        console.error('Error parsing saved preferences:', e);
+      }
+    }
+  }, [currentLocation, routerLocation.state]);
 
   const handleLike = (category: Category) => {
     if (dislikedCategories.includes(category.id)) {
@@ -60,6 +88,8 @@ const PreferencesPage = () => {
 
   const handleLocationSelected = (location: LocationData) => {
     setSelectedLocation(location);
+    // Save to localStorage for persistence
+    localStorage.setItem('userLocation', JSON.stringify(location));
   };
 
   const handleNext = () => {
