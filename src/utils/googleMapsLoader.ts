@@ -15,10 +15,7 @@ export async function loadGoogleMapsScript(): Promise<GoogleMapsLoadingState> {
       return { isApiLoaded: true, apiError: null };
     }
     
-    // If just the maps object exists but not places, we need to reload with places
-    if (window.google?.maps && !window.google.maps.places) {
-      console.warn('Google Maps loaded but Places library missing. Will reload with Places library');
-    }
+    console.log('Starting Google Maps API loading process...');
     
     await new Promise<void>((resolve, reject) => {
       // Check if script already exists but maybe failed
@@ -30,20 +27,19 @@ export async function loadGoogleMapsScript(): Promise<GoogleMapsLoadingState> {
       }
       
       const script = document.createElement('script');
-      // Add loading=async for better performance as recommended by Google
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&callback=initGoogleMapsCallback&loading=async`;
+      // Fix: Simplify the URL and ensure libraries parameter is correct
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
       script.async = true;
       script.defer = true;
       
-      // Create global callback
-      window.initGoogleMapsCallback = () => {
-        console.log('Google Maps API loaded successfully via callback');
+      script.onload = () => {
+        console.log('Google Maps script loaded via onload event');
+        // Check if the places library is available
         if (!window.google?.maps?.places) {
-          console.error('Places library not available in callback');
+          console.error('Places library not available after script load');
           reject(new Error('Places library not available after loading'));
           return;
         }
-        delete window.initGoogleMapsCallback;
         resolve();
       };
       
@@ -54,14 +50,14 @@ export async function loadGoogleMapsScript(): Promise<GoogleMapsLoadingState> {
       
       // Add timeout in case the script loads but callback doesn't fire
       setTimeout(() => {
-        if (window.initGoogleMapsCallback) {
-          console.error('Google Maps script loaded but callback not fired after timeout');
-          reject(new Error('Google Maps callback timeout'));
+        if (!window.google?.maps?.places) {
+          console.error('Google Maps script loaded but Places library not found after timeout');
+          reject(new Error('Google Maps Places library timeout'));
         }
       }, 10000);
       
       document.head.appendChild(script);
-      console.log('Google Maps script added to DOM with loading=async parameter');
+      console.log('Google Maps script added to DOM');
     });
 
     if (!window.google?.maps?.places) {
@@ -69,6 +65,7 @@ export async function loadGoogleMapsScript(): Promise<GoogleMapsLoadingState> {
       return { isApiLoaded: false, apiError: 'Google Places API failed to initialize' };
     }
 
+    console.log('Successfully loaded Google Maps Places API');
     return { isApiLoaded: true, apiError: null };
     
   } catch (error) {
@@ -87,6 +84,7 @@ export function checkGooglePlacesAvailable(): boolean {
 export function checkApiKeyStatus(): Promise<boolean> {
   return new Promise((resolve) => {
     if (!window.google?.maps) {
+      console.error('Cannot check API key status: Google Maps not loaded');
       resolve(false);
       return;
     }

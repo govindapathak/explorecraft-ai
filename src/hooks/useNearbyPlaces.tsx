@@ -15,11 +15,15 @@ export function useNearbyPlaces(searchRadius = 1500) {
   const [apiError, setApiError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [apiKeyValid, setApiKeyValid] = useState<boolean | null>(null);
+  const [apiLoadingInProgress, setApiLoadingInProgress] = useState(false);
 
   // Load Google Maps API on component mount
   useEffect(() => {
     const initializeGoogleMapsApi = async () => {
+      if (apiLoadingInProgress) return;
+      
       try {
+        setApiLoadingInProgress(true);
         console.log('Initializing Google Maps API');
         const { isApiLoaded: loaded, apiError: error } = await loadGoogleMapsScript();
         console.log('API loaded status:', loaded, 'Error:', error);
@@ -59,12 +63,19 @@ export function useNearbyPlaces(searchRadius = 1500) {
               description: keyError,
               variant: "destructive"
             });
+          } else {
+            toast({
+              title: "API Ready",
+              description: "Google Maps Places API loaded successfully"
+            });
           }
         }
       } catch (err) {
         console.error('Failed to initialize Maps API:', err);
         setApiError('Failed to initialize Google Maps API');
         setIsApiLoaded(false);
+      } finally {
+        setApiLoadingInProgress(false);
       }
     };
 
@@ -82,6 +93,10 @@ export function useNearbyPlaces(searchRadius = 1500) {
     setRetryCount(prev => prev + 1);
     setApiError(null);
     setApiKeyValid(null);
+    toast({
+      title: "Retrying",
+      description: "Attempting to reload the Google Maps API"
+    });
   }, []);
 
   // Function to search for places using either current location or manual coordinates
@@ -107,6 +122,11 @@ export function useNearbyPlaces(searchRadius = 1500) {
     // Check if API is loaded
     if (!isApiLoaded) {
       console.log('API not loaded, attempting to reload');
+      toast({
+        title: "Loading API",
+        description: "Google Maps API is not ready yet. Attempting to load it now."
+      });
+      
       // Try to reload the API
       const { isApiLoaded: reloaded, apiError: error } = await loadGoogleMapsScript();
       
@@ -119,6 +139,9 @@ export function useNearbyPlaces(searchRadius = 1500) {
         return;
       }
       setIsApiLoaded(true);
+      
+      // Wait a moment to ensure the API is fully initialized
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
     
     if (apiError) {
