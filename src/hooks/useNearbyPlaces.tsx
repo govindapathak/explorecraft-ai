@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useLocation } from '@/hooks/useLocation';
 import { toast } from '@/components/ui/use-toast';
@@ -12,20 +13,42 @@ export function useNearbyPlaces(searchRadius = 1500) {
   const [locationInsights, setLocationInsights] = useState<string | null>(null);
   const { currentLocation } = useLocation();
   const [apiError, setApiError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Load Google Maps API on component mount
   useEffect(() => {
     const initializeGoogleMapsApi = async () => {
-      const { isApiLoaded: loaded, apiError: error } = await loadGoogleMapsScript();
-      setIsApiLoaded(loaded);
-      
-      if (error) {
-        setApiError(error);
-        toast({
-          title: "API Error",
-          description: error,
-          variant: "destructive"
-        });
+      try {
+        console.log('Initializing Google Maps API');
+        const { isApiLoaded: loaded, apiError: error } = await loadGoogleMapsScript();
+        console.log('API loaded status:', loaded, 'Error:', error);
+        setIsApiLoaded(loaded);
+        
+        if (error) {
+          setApiError(error);
+          toast({
+            title: "API Error",
+            description: error,
+            variant: "destructive"
+          });
+        } else if (loaded) {
+          // Verify the Places API is actually available
+          const placesAvailable = checkGooglePlacesAvailable();
+          if (!placesAvailable) {
+            const placesError = "Google Places library not available";
+            setApiError(placesError);
+            setIsApiLoaded(false);
+            toast({
+              title: "API Error",
+              description: placesError,
+              variant: "destructive"
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Failed to initialize Maps API:', err);
+        setApiError('Failed to initialize Google Maps API');
+        setIsApiLoaded(false);
       }
     };
 
@@ -36,26 +59,13 @@ export function useNearbyPlaces(searchRadius = 1500) {
       setPlaces([]);
       setLocationInsights(null);
     };
-  }, []);
+  }, [retryCount]); // Add retryCount to dependencies to allow manual retry
 
-  // Monitor for API errors
-  useEffect(() => {
-    const checkApiErrors = () => {
-      if (window.google?.maps && !window.google.maps.places) {
-        const errorMsg = 'Google Places library failed to load';
-        setApiError(errorMsg);
-        toast({
-          title: "API Error",
-          description: errorMsg,
-          variant: "destructive"
-        });
-      }
-    };
-    
-    if (isApiLoaded) {
-      checkApiErrors();
-    }
-  }, [isApiLoaded]);
+  // Manual function to retry loading the API
+  const retryLoadingApi = useCallback(() => {
+    setRetryCount(prev => prev + 1);
+    setApiError(null);
+  }, []);
 
   // Function to search for places using either current location or manual coordinates
   const searchNearbyPlaces = useCallback(async (manualLocation?: { name: string; latitude: number; longitude: number }) => {
@@ -75,13 +85,23 @@ export function useNearbyPlaces(searchRadius = 1500) {
       return;
     }
 
+    console.log('Search initiated with location:', locationToUse);
+    
+    // Check if API is loaded
     if (!isApiLoaded) {
-      toast({
-        title: "API not ready",
-        description: "Google Maps API is still loading. Please try again in a moment.",
-        variant: "destructive"
-      });
-      return;
+      console.log('API not loaded, attempting to reload');
+      // Try to reload the API
+      const { isApiLoaded: reloaded, apiError: error } = await loadGoogleMapsScript();
+      
+      if (!reloaded) {
+        toast({
+          title: "API not ready",
+          description: error || "Google Maps API failed to load. Please try refreshing the page.",
+          variant: "destructive"
+        });
+        return;
+      }
+      setIsApiLoaded(true);
     }
     
     if (apiError) {
@@ -100,6 +120,7 @@ export function useNearbyPlaces(searchRadius = 1500) {
       // Get location insights first
       const insights = await getLocationInsights(locationToUse);
       setLocationInsights(insights);
+      console.log('Location insights set:', insights);
       
       // Now search for nearby places
       const attractions = await searchNearbyAttractions(locationToUse, searchRadius);
@@ -130,5 +151,13 @@ export function useNearbyPlaces(searchRadius = 1500) {
     }
   }, [currentLocation, searchRadius, isApiLoaded, apiError]);
 
-  return { places, isLoading, isApiLoaded, locationInsights, searchNearbyPlaces, apiError };
+  return { 
+    places, 
+    isLoading, 
+    isApiLoaded, 
+    locationInsights, 
+    searchNearbyPlaces, 
+    apiError,
+    retryLoadingApi
+  };
 }

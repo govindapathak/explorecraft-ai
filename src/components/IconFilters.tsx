@@ -17,6 +17,7 @@ interface IconFilter {
   id: FilterCategory;
   icon: React.ReactNode;
   label: string;
+  keywords: string[]; // Keywords to match against place types or tags
 }
 
 interface IconFiltersProps {
@@ -29,14 +30,54 @@ const IconFilters = ({ onFilterChange, className, vertical = false }: IconFilter
   const [selectedFilter, setSelectedFilter] = useState<FilterCategory | null>(null);
 
   const filters: IconFilter[] = [
-    { id: 'accessibility', icon: <Accessibility className="h-4 w-4" />, label: 'Accessible' },
-    { id: 'ratings', icon: <Star className="h-4 w-4" />, label: 'Top Rated' },
-    { id: 'weatherProof', icon: <Cloud className="h-4 w-4" />, label: 'Weather Proof' },
-    { id: 'parking', icon: <Car className="h-4 w-4" />, label: 'Parking' },
-    { id: 'food', icon: <Coffee className="h-4 w-4" />, label: 'Food & Drinks' },
-    { id: 'outdoor', icon: <Mountain className="h-4 w-4" />, label: 'Outdoor' },
-    { id: 'adventure', icon: <Compass className="h-4 w-4" />, label: 'Adventure' },
-    { id: 'culture', icon: <Museum className="h-4 w-4" />, label: 'Culture' }
+    { 
+      id: 'accessibility', 
+      icon: <Accessibility className="h-4 w-4" />, 
+      label: 'Accessible',
+      keywords: ['wheelchair', 'accessible', 'disability']
+    },
+    { 
+      id: 'ratings', 
+      icon: <Star className="h-4 w-4" />, 
+      label: 'Top Rated',
+      keywords: ['top_rated', 'highly_rated', 'popular']
+    },
+    { 
+      id: 'weatherProof', 
+      icon: <Cloud className="h-4 w-4" />, 
+      label: 'Weather Proof',
+      keywords: ['indoor', 'museum', 'mall', 'theater']
+    },
+    { 
+      id: 'parking', 
+      icon: <Car className="h-4 w-4" />, 
+      label: 'Parking',
+      keywords: ['parking', 'car', 'parking_lot']
+    },
+    { 
+      id: 'food', 
+      icon: <Coffee className="h-4 w-4" />, 
+      label: 'Food & Drinks',
+      keywords: ['restaurant', 'cafe', 'bar', 'food', 'bakery', 'meal']
+    },
+    { 
+      id: 'outdoor', 
+      icon: <Mountain className="h-4 w-4" />, 
+      label: 'Outdoor',
+      keywords: ['park', 'garden', 'nature', 'outdoor', 'trail', 'beach', 'mountain']
+    },
+    { 
+      id: 'adventure', 
+      icon: <Compass className="h-4 w-4" />, 
+      label: 'Adventure',
+      keywords: ['adventure', 'hiking', 'tour', 'sightseeing', 'climbing']
+    },
+    { 
+      id: 'culture', 
+      icon: <Museum className="h-4 w-4" />, 
+      label: 'Culture',
+      keywords: ['museum', 'gallery', 'theater', 'historical', 'landmark', 'monument', 'art']
+    }
   ];
 
   const handleFilterClick = (filterId: FilterCategory) => {
@@ -46,6 +87,8 @@ const IconFilters = ({ onFilterChange, className, vertical = false }: IconFilter
     if (onFilterChange) {
       onFilterChange(newValue);
     }
+    
+    console.log('Filter changed to:', newValue);
   };
 
   return (
