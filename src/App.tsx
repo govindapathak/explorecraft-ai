@@ -12,6 +12,9 @@ import SignUp from "./pages/SignUp";
 import Dashboard from "./pages/Dashboard";
 import Itinerary from "./pages/Itinerary";
 import NotFound from "./pages/NotFound";
+import LocationPermission from "./pages/LocationPermission";
+import Preferences from "./pages/Preferences";
+import Discover from "./pages/Discover";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +31,9 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<SignUp />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/location" element={<LocationPermission />} />
+              <Route path="/preferences" element={<Preferences />} />
+              <Route path="/discover" element={<Discover />} />
               <Route path="/itinerary" element={<Itinerary />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -1,160 +1,146 @@
 
-import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { MapPin, Menu, X, User, Home } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Menu, X, User, LogOut, MapPin, Compass, Map } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useAuth } from '@/hooks/useAuth';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const Navbar = () => {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { isAuthenticated, user, logout } = useAuth();
+  const navigate = useNavigate();
   const location = useLocation();
-  const isHomePage = location.pathname === "/";
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
-    };
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  const closeMenu = () => {
+    setIsMenuOpen(false);
+  };
 
-  useEffect(() => {
-    // Close mobile menu when location changes
-    setIsMobileMenuOpen(false);
-  }, [location]);
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
+  // Navigation items - show different items based on auth state
+  const navItems = isAuthenticated
+    ? [
+        { label: 'Find Attractions', href: '/discover', icon: <Compass className="h-4 w-4 mr-2" /> },
+        { label: 'My Preferences', href: '/preferences', icon: <User className="h-4 w-4 mr-2" /> },
+        { label: 'My Itinerary', href: '/itinerary', icon: <Map className="h-4 w-4 mr-2" /> },
+        { label: 'Location', href: '/location', icon: <MapPin className="h-4 w-4 mr-2" /> },
+      ]
+    : [
+        { label: 'Home', href: '/' },
+        { label: 'Login', href: '/login' },
+        { label: 'Sign Up', href: '/signup' },
+      ];
 
   return (
-    <header
-      className={cn(
-        'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
-        isScrolled 
-          ? 'bg-white/80 backdrop-blur-lg shadow-sm border-b border-border/50 dark:bg-black/80' 
-          : 'bg-transparent'
-      )}
-    >
-      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-        <Link to="/" className="flex items-center space-x-2">
-          <MapPin className="text-primary w-6 h-6" />
-          <span className="font-semibold text-lg">ExploreAI</span>
-        </Link>
-
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center space-x-6">
-          {!isHomePage && (
-            <Link 
-              to="/"
-              className="transition-colors text-sm font-medium hover:text-primary flex items-center gap-1"
-            >
-              <Home className="h-4 w-4" />
-              <span>Home</span>
-            </Link>
-          )}
-          <Link 
-            to="/dashboard" 
-            className={cn(
-              "transition-colors text-sm font-medium hover:text-primary",
-              location.pathname === "/dashboard" ? "text-primary" : "text-foreground/80"
-            )}
-          >
-            Discover
+    <nav className="bg-background border-b">
+      <div className="container mx-auto px-4 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo */}
+          <Link to="/" className="flex items-center">
+            <span className="text-xl font-bold">TravelBuddy</span>
           </Link>
-          <Link 
-            to="/itinerary" 
-            className={cn(
-              "transition-colors text-sm font-medium hover:text-primary",
-              location.pathname === "/itinerary" ? "text-primary" : "text-foreground/80"
-            )}
-          >
-            My Itinerary
-          </Link>
-          {location.pathname === "/" || location.pathname === "/login" ? (
-            <Link to="/login">
-              <Button variant="default" size="sm" className="rounded-full shadow-button">
-                Sign In
-              </Button>
-            </Link>
-          ) : (
-            <Avatar className="h-8 w-8 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all">
-              <AvatarFallback className="bg-primary/10 text-primary">
-                <User className="h-4 w-4" />
-              </AvatarFallback>
-            </Avatar>
-          )}
-        </nav>
 
-        {/* Mobile Menu Button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="md:hidden"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        >
-          {isMobileMenuOpen ? (
-            <X className="h-5 w-5" />
-          ) : (
-            <Menu className="h-5 w-5" />
-          )}
-        </Button>
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex md:items-center md:space-x-4">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                to={item.href}
+                className={`px-3 py-2 rounded-md text-sm font-medium flex items-center
+                  ${
+                    location.pathname === item.href
+                      ? 'text-primary bg-primary/10'
+                      : 'text-foreground hover:bg-secondary'
+                  }`}
+              >
+                {item.icon}
+                {item.label}
+              </Link>
+            ))}
+
+            {isAuthenticated && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="ml-2">
+                    <User className="h-4 w-4 mr-2" />
+                    Account
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate('/preferences')}>
+                    <User className="h-4 w-4 mr-2" />
+                    Preferences
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Log Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+
+          {/* Mobile Navigation Toggle */}
+          <div className="md:hidden">
+            <Button variant="ghost" size="icon" onClick={toggleMenu}>
+              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </Button>
+          </div>
+        </div>
       </div>
 
-      {/* Mobile Menu */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden bg-background border-t border-border/50 animate-slide-in-right">
-          <div className="container py-4 px-4 flex flex-col space-y-4">
-            {!isHomePage && (
-              <Link 
-                to="/" 
-                className="py-2 px-4 rounded-lg transition-colors hover:bg-primary/5 flex items-center gap-2"
+      {/* Mobile Navigation Menu */}
+      {isMenuOpen && (
+        <div className="md:hidden bg-card border-t">
+          <div className="container mx-auto px-4 py-2 space-y-1">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                to={item.href}
+                onClick={closeMenu}
+                className={`block px-3 py-2 rounded-md text-sm font-medium flex items-center
+                  ${
+                    location.pathname === item.href
+                      ? 'text-primary bg-primary/10'
+                      : 'text-foreground hover:bg-secondary'
+                  }`}
               >
-                <Home className="h-4 w-4" />
-                Home
+                {item.icon}
+                {item.label}
               </Link>
-            )}
-            <Link 
-              to="/dashboard" 
-              className={cn(
-                "py-2 px-4 rounded-lg transition-colors",
-                location.pathname === "/dashboard" 
-                  ? "bg-primary/10 text-primary" 
-                  : "hover:bg-primary/5"
-              )}
-            >
-              Discover
-            </Link>
-            <Link 
-              to="/itinerary" 
-              className={cn(
-                "py-2 px-4 rounded-lg transition-colors",
-                location.pathname === "/itinerary" 
-                  ? "bg-primary/10 text-primary" 
-                  : "hover:bg-primary/5"
-              )}
-            >
-              My Itinerary
-            </Link>
-            {location.pathname === "/" || location.pathname === "/login" ? (
-              <Link to="/login" className="w-full">
-                <Button variant="default" className="w-full rounded-lg shadow-button">
-                  Sign In
-                </Button>
-              </Link>
-            ) : (
-              <div className="flex items-center space-x-3 p-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-primary/10 text-primary">
-                    <User className="h-4 w-4" />
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-sm font-medium">My Profile</span>
-              </div>
+            ))}
+
+            {isAuthenticated && (
+              <Button variant="ghost" className="w-full justify-start" onClick={handleLogout}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Log Out
+              </Button>
             )}
           </div>
         </div>
       )}
-    </header>
+    </nav>
   );
 };
 
