@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Recommendation } from '@/components/RecommendationTile';
@@ -5,7 +6,7 @@ import FilterCard, { SelectedFilters } from '@/components/FilterCard';
 import IconFilters, { FilterCategory } from '@/components/IconFilters';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
-import { Map, LayoutGrid } from 'lucide-react';
+import { Map, LayoutGrid, MapPin } from 'lucide-react';
 import AttractionSearch from '@/components/AttractionSearch';
 import { useNearbyPlaces } from '@/hooks/useNearbyPlaces';
 
