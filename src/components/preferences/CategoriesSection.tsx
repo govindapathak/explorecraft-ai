@@ -59,4 +59,3 @@ const CategoriesSection = ({
 };
 
 export default CategoriesSection;
-export { categories };
