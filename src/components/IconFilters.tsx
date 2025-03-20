@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Accessibility, Star, Cloud, Car, Coffee, Mountain, Compass, Museum } from 'lucide-react';
+import { Accessibility, Star, Cloud, Car, Coffee, Mountain, Compass, Landmark } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type FilterCategory = 
@@ -74,7 +74,7 @@ const IconFilters = ({ onFilterChange, className, vertical = false }: IconFilter
     },
     { 
       id: 'culture', 
-      icon: <Museum className="h-4 w-4" />, 
+      icon: <Landmark className="h-4 w-4" />, 
       label: 'Culture',
       keywords: ['museum', 'gallery', 'theater', 'historical', 'landmark', 'monument', 'art']
     }
