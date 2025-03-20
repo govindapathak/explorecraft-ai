@@ -12,13 +12,14 @@ interface Location {
 interface SearchResultsProps {
   results: Location[];
   onSelectLocation: (location: Location) => void;
+  visible: boolean;
 }
 
-const SearchResults = ({ results, onSelectLocation }: SearchResultsProps) => {
-  if (results.length === 0) return null;
+const SearchResults = ({ results, onSelectLocation, visible }: SearchResultsProps) => {
+  if (!visible || results.length === 0) return null;
   
   return (
-    <div className="absolute top-full left-0 right-0 mt-1 p-2 bg-card rounded-lg border shadow-md z-10 animate-scale-in">
+    <div className="absolute top-full left-0 right-0 mt-1 p-2 bg-background rounded-lg border shadow-md z-50 animate-in fade-in-50 zoom-in-95">
       <div className="max-h-60 overflow-y-auto space-y-1">
         {results.map((result, index) => (
           <button
