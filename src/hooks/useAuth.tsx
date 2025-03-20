@@ -1,233 +1,106 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from '@/components/ui/use-toast';
-
-// Define auth types for Google, Apple, and Facebook
-interface AuthUser {
-  id: string;
-  name: string;
-  email: string;
-  photoUrl?: string;
-  provider: 'google' | 'apple' | 'facebook' | 'email';
-}
+import { supabase } from '@/integrations/supabase/client';
+import { Session, User } from '@supabase/supabase-js';
 
 interface AuthContextType {
-  user: AuthUser | null;
+  user: User | null;
+  session: Session | null;
   isLoading: boolean;
   error: string | null;
-  login: (provider: 'google' | 'apple' | 'facebook' | 'email', credentials?: { email: string; password: string }) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Google client ID - replace with your own from Google Cloud Console
-const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID';
-
-// Type definition for Google's auth response
-interface GoogleAuthResponse {
-  clientId: string;
-  credential: string;
-  select_by: string;
-}
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [googleLoaded, setGoogleLoaded] = useState(false);
 
-  // Load the Google Identity Services script
+  // Initialize auth state
   useEffect(() => {
-    const loadGoogleScript = () => {
-      // Skip if already loaded
-      if (document.querySelector('script[src*="accounts.google.com/gsi/client"]')) {
-        setGoogleLoaded(true);
-        return;
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setIsLoading(false);
       }
-      
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      script.defer = true;
-      script.onload = () => {
-        console.log('Google Identity Services script loaded');
-        setGoogleLoaded(true);
-      };
-      script.onerror = (error) => {
-        console.error('Error loading Google script:', error);
-        setError('Failed to load Google authentication');
-      };
-      
-      document.head.appendChild(script);
-    };
-    
-    loadGoogleScript();
-  }, []);
+    );
 
-  // Check for existing auth on mount
-  useEffect(() => {
-    // Check local storage for saved user data
-    const savedUser = localStorage.getItem('auth_user');
-    
-    if (savedUser) {
-      try {
-        const parsedUser = JSON.parse(savedUser);
-        setUser(parsedUser);
-      } catch (e) {
-        console.error('Error parsing saved user data', e);
-        localStorage.removeItem('auth_user');
-      }
-    }
-    
-    setIsLoading(false);
-  }, []);
-
-  // Initialize Google Sign-In when the script is loaded
-  useEffect(() => {
-    if (!googleLoaded || !window.google) return;
-
-    window.google.accounts.id.initialize({
-      client_id: GOOGLE_CLIENT_ID,
-      callback: handleGoogleSignIn,
-      auto_select: false,
-      cancel_on_tap_outside: true,
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setIsLoading(false);
     });
-  }, [googleLoaded]);
 
-  // Function to handle Google sign-in response
-  const handleGoogleSignIn = async (response: GoogleAuthResponse) => {
-    try {
-      // Decode the JWT token to extract user information
-      const base64Url = response.credential.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(
-        atob(base64)
-          .split('')
-          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-          .join('')
-      );
+    return () => subscription.unsubscribe();
+  }, []);
 
-      const { sub, email, name, picture } = JSON.parse(jsonPayload);
-
-      // Create user object from Google data
-      const userData: AuthUser = {
-        id: sub,
-        name: name,
-        email: email,
-        photoUrl: picture,
-        provider: 'google',
-      };
-
-      // Save to local storage and state
-      localStorage.setItem('auth_user', JSON.stringify(userData));
-      setUser(userData);
-      
-      toast({
-        title: "Login successful",
-        description: `Welcome, ${userData.name}!`,
-      });
-    } catch (error) {
-      console.error('Error handling Google sign-in:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Google login failed';
-      setError(errorMessage);
-      
-      toast({
-        title: "Login failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Handle login with different providers
-  const login = async (
-    provider: 'google' | 'apple' | 'facebook' | 'email',
-    credentials?: { email: string; password: string }
-  ) => {
+  // Handle login
+  const login = async (email: string, password: string) => {
     setIsLoading(true);
     setError(null);
     
     try {
-      switch (provider) {
-        case 'google':
-          if (!googleLoaded || !window.google) {
-            throw new Error('Google authentication is not available');
-          }
-          
-          // Trigger Google sign-in popup
-          window.google.accounts.id.prompt();
-          
-          // Note: The actual sign-in happens in the callback
-          // so we don't set the user here
-          break;
-        case 'apple':
-          // Mock Apple login for now
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          const appleUser: AuthUser = {
-            id: 'apple-123',
-            name: 'Apple User',
-            email: 'user@icloud.com',
-            provider: 'apple'
-          };
-          localStorage.setItem('auth_user', JSON.stringify(appleUser));
-          setUser(appleUser);
-          
-          toast({
-            title: "Login successful",
-            description: `Welcome, ${appleUser.name}!`,
-          });
-          break;
-        case 'facebook':
-          // Mock Facebook login for now
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          const fbUser: AuthUser = {
-            id: 'facebook-123',
-            name: 'Facebook User',
-            email: 'user@facebook.com',
-            photoUrl: 'https://graph.facebook.com/profile-image',
-            provider: 'facebook'
-          };
-          localStorage.setItem('auth_user', JSON.stringify(fbUser));
-          setUser(fbUser);
-          
-          toast({
-            title: "Login successful",
-            description: `Welcome, ${fbUser.name}!`,
-          });
-          break;
-        case 'email':
-          if (!credentials) {
-            throw new Error('Email and password are required');
-          }
-          // Mock email login for now
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          const emailUser: AuthUser = {
-            id: 'email-123',
-            name: 'Email User',
-            email: credentials.email,
-            provider: 'email'
-          };
-          localStorage.setItem('auth_user', JSON.stringify(emailUser));
-          setUser(emailUser);
-          
-          toast({
-            title: "Login successful",
-            description: `Welcome, ${emailUser.name}!`,
-          });
-          break;
-        default:
-          throw new Error('Invalid auth provider');
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Login failed';
-      setError(errorMessage);
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Login successful",
+        description: "Welcome back!",
+      });
+    } catch (error: any) {
+      setError(error.message);
       
       toast({
         title: "Login failed",
-        description: errorMessage,
+        description: error.message,
         variant: "destructive",
       });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle sign up
+  const signUp = async (email: string, password: string) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Sign up successful",
+        description: "Please check your email for confirmation",
+      });
+    } catch (error: any) {
+      setError(error.message);
+      
+      toast({
+        title: "Sign up failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -238,26 +111,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     
     try {
-      // For Google, we should also sign out from Google
-      if (user?.provider === 'google' && window.google) {
-        window.google.accounts.id.disableAutoSelect();
-      }
-      
-      // Clear local storage and state
-      localStorage.removeItem('auth_user');
-      setUser(null);
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
       
       toast({
         title: "Logged out",
         description: "You have been successfully logged out",
       });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Logout failed';
-      setError(errorMessage);
+    } catch (error: any) {
+      setError(error.message);
       
       toast({
         title: "Logout failed",
-        description: errorMessage,
+        description: error.message,
         variant: "destructive",
       });
     } finally {
@@ -268,9 +134,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   return (
     <AuthContext.Provider value={{
       user,
+      session,
       isLoading,
       error,
       login,
+      signUp,
       logout,
       isAuthenticated: !!user,
     }}>
