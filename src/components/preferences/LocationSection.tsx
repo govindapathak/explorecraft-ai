@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import LocationSelector from '@/components/LocationSelector';
 import ManualLocationInput from '@/components/ManualLocationInput';
-import { Button } from '@/components/ui/button';
 import { Map } from 'lucide-react';
 
 export interface LocationData {
@@ -40,17 +39,6 @@ const LocationSection = ({ selectedLocation, onLocationSelected }: LocationSecti
                 onMapError={() => setShowManualInput(true)}
               />
               
-              <div className="mt-4">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setShowManualInput(true)}
-                  className="w-full"
-                >
-                  <Map className="mr-2 h-4 w-4" />
-                  Enter Location Manually
-                </Button>
-              </div>
-              
               {selectedLocation && (
                 <div className="mt-4 py-2 px-3 bg-primary/10 text-primary rounded-md">
                   Using: {selectedLocation.name}
@@ -67,13 +55,12 @@ const LocationSection = ({ selectedLocation, onLocationSelected }: LocationSecti
                   longitude: selectedLocation.coords.lng
                 } : undefined}
               />
-              <Button 
-                variant="ghost" 
+              <button 
+                className="mt-4 text-sm text-primary hover:underline w-full text-center"
                 onClick={() => setShowManualInput(false)} 
-                className="mt-4 w-full"
               >
-                Back to automatic location
-              </Button>
+                Back to map search
+              </button>
             </>
           )}
         </CardContent>

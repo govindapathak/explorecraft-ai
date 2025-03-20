@@ -71,7 +71,7 @@ const LocationSelector = ({
     return (
       <div className="w-full">
         <p className="text-destructive mb-3">
-          Google Maps failed to load. Please use your current location or enter a location manually.
+          Google Maps failed to load. Please use your current location or refresh the page.
         </p>
         <CurrentLocationButton 
           onClick={handleUseCurrentLocation}

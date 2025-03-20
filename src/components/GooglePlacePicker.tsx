@@ -33,7 +33,6 @@ const GooglePlacePicker = ({ onPlaceSelected, onError }: GooglePlacePickerProps)
   const [isComponentLoaded, setIsComponentLoaded] = useState(false);
   const [isScriptLoading, setIsScriptLoading] = useState(true);
   const [loadAttempts, setLoadAttempts] = useState(0);
-  const [selectedPlace, setSelectedPlace] = useState<any | null>(null);
   const { isApiLoaded, apiError, retryLoadingApi } = useGoogleMapsApi();
 
   // Use a ref to track if we've already triggered the error callback
@@ -100,7 +99,31 @@ const GooglePlacePicker = ({ onPlaceSelected, onError }: GooglePlacePickerProps)
       const place = event.detail?.place;
       if (place) {
         console.log('Place selected:', place);
-        setSelectedPlace(place);
+        
+        // Automatically confirm the place when selected
+        try {
+          const locationData = {
+            name: place.displayName || place.formattedAddress || "Selected Location",
+            coords: {
+              lat: place.location?.latitude || 0,
+              lng: place.location?.longitude || 0
+            }
+          };
+
+          onPlaceSelected(locationData);
+          
+          toast({
+            title: "Location selected",
+            description: `You've selected ${locationData.name}`,
+          });
+        } catch (error) {
+          console.error('Error processing selected place:', error);
+          toast({
+            title: "Error processing location",
+            description: "There was a problem with the selected location",
+            variant: "destructive"
+          });
+        }
       }
     };
 
@@ -109,42 +132,7 @@ const GooglePlacePicker = ({ onPlaceSelected, onError }: GooglePlacePickerProps)
     return () => {
       placePickerElement.removeEventListener('gmpx-placechange', handlePlaceChanged);
     };
-  }, [isComponentLoaded]);
-
-  const handleConfirmPlace = () => {
-    if (!selectedPlace) {
-      toast({
-        title: "No place selected",
-        description: "Please select a location first",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      const locationData = {
-        name: selectedPlace.displayName || selectedPlace.formattedAddress || "Selected Location",
-        coords: {
-          lat: selectedPlace.location?.latitude || 0,
-          lng: selectedPlace.location?.longitude || 0
-        }
-      };
-
-      onPlaceSelected(locationData);
-      
-      toast({
-        title: "Location selected",
-        description: `You've selected ${locationData.name}`,
-      });
-    } catch (error) {
-      console.error('Error processing selected place:', error);
-      toast({
-        title: "Error processing location",
-        description: "There was a problem with the selected location",
-        variant: "destructive"
-      });
-    }
-  };
+  }, [isComponentLoaded, onPlaceSelected]);
 
   const handleRetry = () => {
     retryLoadingApi();
@@ -192,16 +180,6 @@ const GooglePlacePicker = ({ onPlaceSelected, onError }: GooglePlacePickerProps)
           </Card>
         )}
       </div>
-      
-      {isComponentLoaded && (
-        <Button 
-          onClick={handleConfirmPlace} 
-          className="w-full" 
-          disabled={!selectedPlace}
-        >
-          Confirm Location
-        </Button>
-      )}
     </div>
   );
 };
