@@ -1,6 +1,5 @@
-
 // Use a valid API key with proper restrictions
-const GOOGLE_MAPS_API_KEY = 'AIzaSyD7O27XaQwCczunvKe7dNI_B-AQD79RXDM';
+const GOOGLE_MAPS_API_KEY = 'AIzaSyCsBiYxxkonIA01L_N1dmCt4py4SViP0Dw';
 
 interface GoogleMapsLoadingState {
   isApiLoaded: boolean;
