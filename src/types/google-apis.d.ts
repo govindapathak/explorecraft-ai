@@ -29,6 +29,31 @@ declare global {
       };
     };
   }
+  
+  // Extended component library namespace
+  namespace gmpx {
+    interface Place {
+      displayName?: string;
+      formattedAddress?: string;
+      location?: {
+        latitude: number;
+        longitude: number;
+      };
+      id?: string;
+      placeId?: string;
+    }
+  }
+  
+  // Custom elements
+  interface HTMLElementTagNameMap {
+    'gmpx-api-loader': HTMLElement & {
+      key: string;
+      'solution-channel': string;
+    };
+    'gmpx-place-picker': HTMLElement & {
+      placeholder: string;
+    };
+  }
 }
 
 export {};

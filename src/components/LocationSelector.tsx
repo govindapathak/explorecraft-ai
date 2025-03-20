@@ -1,70 +1,18 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { useLocation } from '@/hooks/useLocation';
-import { placesSearchService, type Location } from '@/services/placesSearchService';
-import SearchBar from '@/components/location/SearchBar';
-import SearchResults from '@/components/location/SearchResults';
+import { type Location } from '@/services/placesSearchService';
 import CurrentLocationButton from '@/components/location/CurrentLocationButton';
+import GooglePlacePicker from '@/components/GooglePlacePicker';
 
 interface LocationSelectorProps {
   onLocationSelected: (location: Location) => void;
 }
 
 const LocationSelector = ({ onLocationSelected }: LocationSelectorProps) => {
-  const [searchInput, setSearchInput] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchResults, setSearchResults] = useState<Location[]>([]);
   const { currentLocation, isLocating, getCurrentLocation } = useLocation();
-
-  // Initialize Google Maps places services
-  useEffect(() => {
-    placesSearchService.initServices();
-  }, []);
-
-  const handleSearch = async () => {
-    setIsSearching(true);
-    
-    try {
-      const results = await placesSearchService.searchLocations(searchInput);
-      setSearchResults(results);
-      
-      if (results.length === 0) {
-        toast({
-          title: "No results found",
-          description: "Try a different search term",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Search error:', error);
-      toast({
-        title: "Search failed",
-        description: "There was a problem with the location search",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
-  };
-
-  const handleSelectLocation = (location: Location) => {
-    setSearchInput(location.name);
-    setSearchResults([]);
-    onLocationSelected(location);
-    
-    toast({
-      title: "Location set",
-      description: `You've selected ${location.name}`,
-    });
-  };
-
+  
   const handleUseCurrentLocation = async () => {
     try {
       const location = await getCurrentLocation();
@@ -73,7 +21,6 @@ const LocationSelector = ({ onLocationSelected }: LocationSelectorProps) => {
           name: "Current Location",
           coords: { lat: location.latitude, lng: location.longitude }
         };
-        setSearchInput(locationData.name);
         onLocationSelected(locationData);
         
         toast({
@@ -90,26 +37,20 @@ const LocationSelector = ({ onLocationSelected }: LocationSelectorProps) => {
     }
   };
 
-  const clearSearch = () => {
-    setSearchInput('');
-    setSearchResults([]);
-  };
-
   return (
-    <div className="w-full max-w-md">
-      <SearchBar 
-        searchInput={searchInput}
-        setSearchInput={setSearchInput}
-        onSearch={handleSearch}
-        isSearching={isSearching}
-        onClear={clearSearch}
-        onKeyDown={handleKeyDown}
-      />
+    <div className="w-full max-w-md space-y-4">
+      <GooglePlacePicker onPlaceSelected={onLocationSelected} />
       
-      <SearchResults 
-        results={searchResults}
-        onSelectLocation={handleSelectLocation}
-      />
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-background px-2 text-muted-foreground">
+            Or use
+          </span>
+        </div>
+      </div>
       
       <CurrentLocationButton 
         onClick={handleUseCurrentLocation}

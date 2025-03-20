@@ -4,6 +4,7 @@ import { Search, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/use-toast';
 
 interface ManualLocationInputProps {
@@ -13,6 +14,7 @@ interface ManualLocationInputProps {
 
 const ManualLocationInput = ({ onLocationSubmit, isLoading = false }: ManualLocationInputProps) => {
   const [locationName, setLocationName] = useState('');
+  const [address, setAddress] = useState('');
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
 
@@ -77,6 +79,18 @@ const ManualLocationInput = ({ onLocationSubmit, isLoading = false }: ManualLoca
             value={locationName}
             onChange={(e) => setLocationName(e.target.value)}
             disabled={isLoading}
+          />
+        </div>
+        
+        <div className="space-y-1">
+          <Label htmlFor="address">Address (optional)</Label>
+          <Textarea
+            id="address"
+            placeholder="Enter full address"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            disabled={isLoading}
+            className="min-h-[60px]"
           />
         </div>
         

@@ -1,5 +1,5 @@
-// Use a valid API key with proper restrictions
-const GOOGLE_MAPS_API_KEY = 'AIzaSyCsBiYxxkonIA01L_N1dmCt4py4SViP0Dw';
+// Use the provided API key with proper restrictions
+const GOOGLE_MAPS_API_KEY = 'AIzaSyBMcrAsK9kOZK9Ja0rHjHiI5etXA3h3wqI';
 
 interface GoogleMapsLoadingState {
   isApiLoaded: boolean;
@@ -25,8 +25,27 @@ export async function loadGoogleMapsScript(): Promise<GoogleMapsLoadingState> {
         console.log('Removed existing Google Maps script for reload');
       }
       
+      // Also check and remove extended component library if it exists
+      const extendedLibScript = document.querySelector(`script[src*="@googlemaps/extended-component-library"]`);
+      if (extendedLibScript) {
+        extendedLibScript.remove();
+        console.log('Removed existing Google Maps extended library for reload');
+      }
+      
+      // Add the extended component library
+      const extendedScript = document.createElement('script');
+      extendedScript.type = 'module';
+      extendedScript.src = 'https://ajax.googleapis.com/ajax/libs/@googlemaps/extended-component-library/0.6.11/index.min.js';
+      document.head.appendChild(extendedScript);
+      
+      // Add the API loader element
+      const apiLoader = document.createElement('gmpx-api-loader');
+      apiLoader.setAttribute('key', GOOGLE_MAPS_API_KEY);
+      apiLoader.setAttribute('solution-channel', 'GMP_GE_placepicker_v2');
+      document.body.appendChild(apiLoader);
+      
+      // Load the regular Google Maps script
       const script = document.createElement('script');
-      // Fix: Simplify the URL and ensure libraries parameter is correct
       script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
       script.async = true;
       script.defer = true;
