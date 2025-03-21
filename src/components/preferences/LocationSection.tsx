@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import LocationSelector from '@/components/LocationSelector';
-import { Map, Sparkles, Loader2, BrainCircuit } from 'lucide-react';
+import { Map, Sparkles, BrainCircuit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 

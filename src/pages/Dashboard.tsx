@@ -14,8 +14,8 @@ const Dashboard = () => {
       return;
     }
     
-    // Redirect to the location permission page to start the flow
-    navigate('/location');
+    // Redirect directly to discover page which will ask for location
+    navigate('/discover');
   }, [isAuthenticated, navigate]);
 
   // Loading state while redirecting
