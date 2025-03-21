@@ -18,6 +18,7 @@ export function useAIRecommendations() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastPreferences, setLastPreferences] = useState<UserPreferences | null>(null);
 
   const generateRecommendations = async (userPreferences: UserPreferences) => {
     if (!userPreferences || !userPreferences.location) {
@@ -29,8 +30,21 @@ export function useAIRecommendations() {
       return;
     }
 
+    // If there are no preferences selected, inform user
+    if (userPreferences.likes.length === 0) {
+      toast({
+        title: "Preferences required",
+        description: "Please select at least one category you like for better recommendations",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
+    
+    // Store the preferences we're using for this request
+    setLastPreferences(userPreferences);
 
     try {
       console.log('Calling generate-recommendations with:', userPreferences);
@@ -57,7 +71,7 @@ export function useAIRecommendations() {
         setRecommendations(data.recommendations);
         toast({
           title: "AI Recommendations Generated",
-          description: `Found ${data.recommendations.length} attractions tailored to your preferences`
+          description: `Found ${data.recommendations.length} attractions tailored to your preferences in ${userPreferences.location.name}`
         });
       } else if (data.error) {
         throw new Error(data.error);
@@ -66,10 +80,12 @@ export function useAIRecommendations() {
       }
     } catch (err) {
       console.error('Error generating recommendations:', err);
-      setError(err instanceof Error ? err.message : 'Failed to generate recommendations');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to generate recommendations';
+      setError(errorMessage);
+      
       toast({
         title: "Error generating recommendations",
-        description: err instanceof Error ? err.message : 'An unexpected error occurred',
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -77,10 +93,31 @@ export function useAIRecommendations() {
     }
   };
 
+  // Regenerate using the same preferences
+  const regenerateRecommendations = async () => {
+    if (lastPreferences) {
+      await generateRecommendations(lastPreferences);
+    } else {
+      toast({
+        title: "No previous preferences",
+        description: "Please set your preferences before regenerating",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Clear current recommendations
+  const clearRecommendations = () => {
+    setRecommendations([]);
+  };
+
   return {
     recommendations,
     isLoading,
     error,
-    generateRecommendations
+    generateRecommendations,
+    regenerateRecommendations,
+    clearRecommendations,
+    hasRecommendations: recommendations.length > 0
   };
 }

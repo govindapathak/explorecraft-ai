@@ -26,9 +26,9 @@ serve(async (req) => {
       throw new Error('Location and preferences are required');
     }
 
-    // Build a prompt based on the user's location and preferences
+    // Enhanced prompt for better, more detailed recommendations
     const prompt = `
-    You're an AI travel assistant for a travel app. Generate 5 personalized attraction recommendations near ${location.name}.
+    You're an expert travel and location recommendation AI assistant. Generate 5 personalized attraction recommendations near ${location.name} based on the following user preferences.
     
     User's preferences:
     - Likes: ${preferences.likes.join(', ')}
@@ -36,28 +36,33 @@ serve(async (req) => {
     - Custom filters: ${preferences.customFilters.join(', ')}
     
     For each recommendation, provide:
-    1. Name
-    2. Type (one of: food, attraction, activity, entertainment)
-    3. A brief description (2-3 sentences)
-    4. Duration (e.g., "1 hour", "2-3 hours")
-    5. Price range (using $ symbols, e.g., "$", "$$", "$$$")
-    6. 3-5 relevant tags
+    1. Name: The full name of the attraction
+    2. Type: Categorize as one of: food, attraction, activity, entertainment, nature, shopping, cultural
+    3. Description: A detailed but concise description (2-3 sentences) highlighting what makes it special and why it matches the user's preferences
+    4. Duration: Estimated time needed to visit (e.g., "1 hour", "2-3 hours", "half day")
+    5. Price range: Using $ symbols from $ (inexpensive) to $$$$ (luxury)
+    6. Location: A brief description of where it's located relative to the city center or other landmarks
+    7. Tags: 3-5 relevant tags that capture key features of the attraction
+    8. Best for: Who would most enjoy this attraction (e.g., "families", "couples", "solo travelers", "history buffs")
     
-    Format your response as a JSON array with these fields (and no additional text):
+    Format your response as a clean JSON array with these fields:
     [
       {
         "name": "Attraction Name",
         "type": "attraction",
-        "description": "Brief description",
+        "description": "Detailed description that connects to user preferences",
         "duration": "1-2 hours",
         "price": "$$",
-        "tags": ["tag1", "tag2", "tag3"]
+        "location": "Brief location description",
+        "tags": ["tag1", "tag2", "tag3"],
+        "bestFor": ["families", "couples"]
       },
       ...
     ]
     `;
 
-    // Call OpenAI API
+    // Call OpenAI API with improved error handling
+    console.log('Sending request to OpenAI...');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -67,10 +72,14 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'You are a travel recommendation assistant that formats responses as clean JSON only.' },
+          { 
+            role: 'system', 
+            content: 'You are a travel recommendation assistant that formats responses as clean JSON only. Ensure each recommendation is personalized based on user preferences and provide practical details that would help a traveler decide where to go.' 
+          },
           { role: 'user', content: prompt }
         ],
         temperature: 0.7,
+        response_format: { type: "json_object" },
       }),
     });
 
@@ -87,29 +96,37 @@ serve(async (req) => {
     console.log('Raw content:', content);
     
     // Parse the JSON data from the content
-    let recommendations;
+    let recommendationsData;
     try {
-      recommendations = JSON.parse(content);
+      recommendationsData = JSON.parse(content);
+      
+      // Check if the data is already in the expected format
+      let recommendations = Array.isArray(recommendationsData) ? 
+        recommendationsData : 
+        (recommendationsData.recommendations || []);
       
       // Add IDs and random image URLs to each recommendation
       recommendations = recommendations.map((rec, index) => ({
         ...rec,
-        id: `ai-rec-${index + 1}`,
-        image: `https://source.unsplash.com/random/800x600?${encodeURIComponent(rec.type)}+${encodeURIComponent(rec.name.split(' ')[0])}`
+        id: `ai-rec-${Date.now()}-${index + 1}`,
+        // Generate a more specific image based on the location and type
+        image: `https://source.unsplash.com/random/800x600?${encodeURIComponent(location.name)}+${encodeURIComponent(rec.type)}+${encodeURIComponent(rec.tags[0] || '')}`
       }));
+
+      console.log('Processed recommendations:', recommendations.length);
+      return new Response(JSON.stringify({ recommendations }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     } catch (error) {
-      console.error('Error parsing JSON from OpenAI response:', error);
+      console.error('Error parsing JSON from OpenAI response:', error, 'Content:', content);
       throw new Error('Failed to parse recommendations from OpenAI');
     }
-
-    console.log('Processed recommendations:', recommendations.length);
-
-    return new Response(JSON.stringify({ recommendations }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
   } catch (error) {
     console.error('Error in generate-recommendations function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      status: 'error'
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

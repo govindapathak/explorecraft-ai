@@ -2,9 +2,9 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import LocationSelector from '@/components/LocationSelector';
-import { Map, Sparkles } from 'lucide-react';
+import { Map, Sparkles, Loader2, BrainCircuit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 
 export interface LocationData {
   name: string;
@@ -24,6 +24,36 @@ const LocationSection = ({
   onGenerateRecommendations,
   isGeneratingRecommendations = false
 }: LocationSectionProps) => {
+  const [progressStage, setProgressStage] = useState<number>(0);
+
+  // Simulate progression through AI reasoning stages during recommendation generation
+  // This gives users visual feedback that something is happening
+  const progressStages = [
+    "Analyzing location data...",
+    "Processing preferences...",
+    "Finding attractions...",
+    "Ranking recommendations...",
+    "Finalizing results..."
+  ];
+  
+  // Update the stage indicator every 1.2 seconds when generating
+  useState(() => {
+    if (isGeneratingRecommendations) {
+      const interval = setInterval(() => {
+        setProgressStage(current => {
+          const next = current + 1;
+          // Loop through the stages if we reach the end before completion
+          return next >= progressStages.length ? 0 : next;
+        });
+      }, 1200);
+      
+      return () => clearInterval(interval);
+    } else {
+      // Reset when not generating
+      setProgressStage(0);
+    }
+  }, [isGeneratingRecommendations]);
+
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">Your Location</h2>
@@ -35,29 +65,41 @@ const LocationSection = ({
           />
           
           {selectedLocation && (
-            <div className="mt-4 py-2 px-3 bg-primary/10 text-primary rounded-md">
-              Using: {selectedLocation.name}
+            <div className="mt-4 py-2 px-3 bg-primary/10 text-primary rounded-md flex items-center">
+              <Map className="h-4 w-4 mr-2" />
+              <span>Using: {selectedLocation.name}</span>
             </div>
           )}
 
           {selectedLocation && onGenerateRecommendations && (
-            <Button 
-              onClick={onGenerateRecommendations} 
-              className="mt-4 w-full" 
-              disabled={isGeneratingRecommendations}
-            >
-              {isGeneratingRecommendations ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Generating recommendations...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Generate AI Recommendations
-                </>
+            <div className="mt-4 space-y-3">
+              <Button 
+                onClick={onGenerateRecommendations} 
+                className="w-full" 
+                disabled={isGeneratingRecommendations}
+              >
+                {isGeneratingRecommendations ? (
+                  <>
+                    <BrainCircuit className="mr-2 h-4 w-4 animate-pulse" />
+                    AI is generating recommendations...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Generate AI Recommendations
+                  </>
+                )}
+              </Button>
+              
+              {isGeneratingRecommendations && (
+                <div className="space-y-2">
+                  <Progress value={(progressStage + 1) * 20} className="h-2" />
+                  <p className="text-xs text-muted-foreground text-center animate-pulse">
+                    {progressStages[progressStage]}
+                  </p>
+                </div>
               )}
-            </Button>
+            </div>
           )}
         </CardContent>
       </Card>
