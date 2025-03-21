@@ -16,7 +16,8 @@ const RecommendationsList = ({
   selectedItems,
   isUsingFallback = false
 }: RecommendationsListProps) => {
-  if (!recommendations || recommendations.length === 0) {
+  // Early return if recommendations are not an array or empty
+  if (!recommendations || !Array.isArray(recommendations) || recommendations.length === 0) {
     return null;
   }
   
@@ -40,9 +41,9 @@ const RecommendationsList = ({
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {recommendations.map(recommendation => (
+        {recommendations.map((recommendation, index) => (
           <RecommendationTile
-            key={recommendation.id || `rec-${Math.random()}`}
+            key={recommendation.id || `rec-${index}-${Math.random()}`}
             recommendation={recommendation}
             onAdd={onAddToItinerary}
             isAdded={selectedItems.some(item => item.id === recommendation.id)}

@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { MapPin, Star, Clock, Plus, Check, Coffee, Utensils, Camera, Music, Bike } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -9,14 +10,20 @@ import { Skeleton } from '@/components/ui/skeleton';
 export interface Recommendation {
   id: string;
   name: string;
-  type: 'food' | 'attraction' | 'activity' | 'entertainment';
-  image: string;
-  location: string;
-  rating: number;
-  description: string;
-  duration: string;
-  price: string;
-  tags: string[];
+  type?: 'food' | 'attraction' | 'activity' | 'entertainment';
+  image?: string;
+  location?: string;
+  address?: string;
+  rating?: number;
+  description?: string;
+  duration?: string;
+  price?: string;
+  tags?: string[];
+  types?: string[];
+  numRatings?: number;
+  priceLevel?: number;
+  distance?: number;
+  bestFor?: string[];
 }
 
 interface RecommendationTileProps {
@@ -82,7 +89,22 @@ const RecommendationTile = ({
     );
   }
   
-  const { name, type, image, location, rating, description, duration, price, tags } = recommendation;
+  // Provide default values for all properties to prevent undefined errors
+  const { 
+    name = 'Unnamed Attraction', 
+    type = 'attraction', 
+    image = 'https://images.unsplash.com/photo-1533929736458-ca588d08c8be?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Mnx8bG9uZG9ufGVufDB8fDB8fA%3D%3D&auto=format&fit=crop&w=800&q=60', 
+    location = recommendation.address || 'No location available', 
+    rating = 0, 
+    description = 'No description available', 
+    duration = 'Varies', 
+    price = 'Not specified', 
+    tags = [],
+    types = []
+  } = recommendation;
+  
+  // Use either tags or types property, whichever is available
+  const displayTags = tags && tags.length > 0 ? tags : types || [];
   
   return (
     <Card 
@@ -96,12 +118,15 @@ const RecommendationTile = ({
     >
       <div className="relative overflow-hidden h-48">
         <img 
-          src={image || 'https://images.unsplash.com/photo-1533929736458-ca588d08c8be?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Mnx8bG9uZG9ufGVufDB8fDB8fA%3D%3D&auto=format&fit=crop&w=800&q=60'} 
+          src={image}
           alt={name}
           className={cn(
             "w-full h-full object-cover transition-transform duration-500",
             isHovered ? "scale-110" : "scale-100"
           )}
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1533929736458-ca588d08c8be?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Mnx8bG9uZG9ufGVufDB8fDB8fA%3D%3D&auto=format&fit=crop&w=800&q=60';
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
         
@@ -122,7 +147,7 @@ const RecommendationTile = ({
             
             <div className="flex items-center bg-black/40 text-white text-sm px-2 py-1 rounded">
               <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 mr-1" />
-              {rating.toFixed(1)}
+              {typeof rating === 'number' ? rating.toFixed(1) : '0.0'}
             </div>
           </div>
         </div>
@@ -144,18 +169,20 @@ const RecommendationTile = ({
           <span>{price}</span>
         </div>
         
-        <div className="flex flex-wrap gap-1 mt-3">
-          {tags.slice(0, 3).map((tag, index) => (
-            <Badge variant="outline" key={index} className="text-xs font-normal">
-              {tag}
-            </Badge>
-          ))}
-          {tags.length > 3 && (
-            <Badge variant="outline" className="text-xs font-normal">
-              +{tags.length - 3} more
-            </Badge>
-          )}
-        </div>
+        {displayTags && displayTags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-3">
+            {displayTags.slice(0, 3).map((tag, index) => (
+              <Badge variant="outline" key={index} className="text-xs font-normal">
+                {tag}
+              </Badge>
+            ))}
+            {displayTags.length > 3 && (
+              <Badge variant="outline" className="text-xs font-normal">
+                +{displayTags.length - 3} more
+              </Badge>
+            )}
+          </div>
+        )}
       </CardContent>
       
       <CardFooter className="pt-0">

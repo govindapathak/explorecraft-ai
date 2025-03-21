@@ -32,7 +32,7 @@ export function useAIRecommendations() {
     }
 
     // If there are no preferences selected, inform user
-    if (userPreferences.likes.length === 0) {
+    if (!userPreferences.likes || userPreferences.likes.length === 0) {
       toast({
         title: "Preferences required",
         description: "Please select at least one category you like for better recommendations",
@@ -69,21 +69,23 @@ export function useAIRecommendations() {
 
       console.log('Recommendations received:', data);
       
-      if (data.recommendations && Array.isArray(data.recommendations)) {
+      if (data && data.recommendations && Array.isArray(data.recommendations)) {
         // Ensure each recommendation has all required fields to prevent errors in RecommendationTile
-        const processedRecommendations = data.recommendations.map((rec, index) => ({
-          id: rec.id || `gen-rec-${index}`,
+        const processedRecommendations = data.recommendations.map((rec: any, index: number) => ({
+          id: rec.id || `gen-rec-${index}-${Date.now()}`,
           name: rec.name || 'Unknown Attraction',
           description: rec.description || 'No description available',
           image: rec.image || 'https://source.unsplash.com/random/800x600?attraction',
-          rating: rec.rating || 0,
+          rating: typeof rec.rating === 'number' ? rec.rating : 0,
           numRatings: rec.numRatings || 0,
           priceLevel: rec.priceLevel || 0,
-          types: rec.types || rec.tags || [],
+          types: Array.isArray(rec.types) ? rec.types : [],
+          tags: Array.isArray(rec.tags) ? rec.tags : [],
           address: rec.address || rec.location || 'Location information not available',
+          location: rec.location || rec.address || 'Location information not available',
           distance: rec.distance || 0,
           duration: rec.duration || '1-2 hours',
-          bestFor: rec.bestFor || [],
+          bestFor: Array.isArray(rec.bestFor) ? rec.bestFor : [],
           price: rec.price || '$',
           type: rec.type || 'attraction'
         }));
@@ -101,10 +103,10 @@ export function useAIRecommendations() {
         } else {
           toast({
             title: "AI Recommendations Generated",
-            description: `Found ${data.recommendations.length} attractions tailored to your preferences in ${userPreferences.location.name}`
+            description: `Found ${processedRecommendations.length} attractions tailored to your preferences in ${userPreferences.location.name}`
           });
         }
-      } else if (data.error) {
+      } else if (data && data.error) {
         throw new Error(data.error);
       } else {
         throw new Error('Invalid response format from AI service');
@@ -119,6 +121,9 @@ export function useAIRecommendations() {
         description: errorMessage,
         variant: "destructive"
       });
+      
+      // Reset recommendations to empty array on error
+      setRecommendations([]);
     } finally {
       setIsLoading(false);
     }
@@ -150,6 +155,6 @@ export function useAIRecommendations() {
     generateRecommendations,
     regenerateRecommendations,
     clearRecommendations,
-    hasRecommendations: recommendations.length > 0
+    hasRecommendations: Array.isArray(recommendations) && recommendations.length > 0
   };
 }
