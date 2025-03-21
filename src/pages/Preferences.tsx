@@ -18,6 +18,7 @@ const PreferencesPage = () => {
     recommendations,
     selectedItems,
     isGeneratingRecommendations,
+    isUsingFallback,
     handleLike,
     handleDislike,
     handleAddCustomFilter,
@@ -73,6 +74,7 @@ const PreferencesPage = () => {
             recommendations={recommendations}
             onAddToItinerary={handleAddToItinerary}
             selectedItems={selectedItems}
+            isUsingFallback={isUsingFallback}
           />
         )}
 

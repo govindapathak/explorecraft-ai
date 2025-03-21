@@ -19,6 +19,7 @@ export function useAIRecommendations() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastPreferences, setLastPreferences] = useState<UserPreferences | null>(null);
+  const [isUsingFallback, setIsUsingFallback] = useState(false);
 
   const generateRecommendations = async (userPreferences: UserPreferences) => {
     if (!userPreferences || !userPreferences.location) {
@@ -42,6 +43,7 @@ export function useAIRecommendations() {
 
     setIsLoading(true);
     setError(null);
+    setIsUsingFallback(false);
     
     // Store the preferences we're using for this request
     setLastPreferences(userPreferences);
@@ -69,10 +71,21 @@ export function useAIRecommendations() {
       
       if (data.recommendations && Array.isArray(data.recommendations)) {
         setRecommendations(data.recommendations);
-        toast({
-          title: "AI Recommendations Generated",
-          description: `Found ${data.recommendations.length} attractions tailored to your preferences in ${userPreferences.location.name}`
-        });
+        
+        // Check if we're using fallback recommendations
+        if (data.isUsingFallback) {
+          setIsUsingFallback(true);
+          toast({
+            title: "Using offline recommendations",
+            description: "We're currently having issues with our AI service. We've generated some recommendations based on your preferences, but they might be less personalized.",
+            variant: "warning"
+          });
+        } else {
+          toast({
+            title: "AI Recommendations Generated",
+            description: `Found ${data.recommendations.length} attractions tailored to your preferences in ${userPreferences.location.name}`
+          });
+        }
       } else if (data.error) {
         throw new Error(data.error);
       } else {
@@ -115,6 +128,7 @@ export function useAIRecommendations() {
     recommendations,
     isLoading,
     error,
+    isUsingFallback,
     generateRecommendations,
     regenerateRecommendations,
     clearRecommendations,

@@ -25,7 +25,8 @@ export function usePreferences() {
   
   const { 
     recommendations, 
-    isLoading: isGeneratingRecommendations, 
+    isLoading: isGeneratingRecommendations,
+    isUsingFallback,
     generateRecommendations 
   } = useAIRecommendations();
 
@@ -173,6 +174,7 @@ export function usePreferences() {
     recommendations,
     selectedItems,
     isGeneratingRecommendations,
+    isUsingFallback,
     handleLike,
     handleDislike,
     handleAddCustomFilter,
