@@ -78,7 +78,7 @@ export function useAIRecommendations() {
           toast({
             title: "Using offline recommendations",
             description: "We're currently having issues with our AI service. We've generated some recommendations based on your preferences, but they might be less personalized.",
-            variant: "warning"
+            variant: "default"
           });
         } else {
           toast({

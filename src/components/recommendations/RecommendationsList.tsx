@@ -31,9 +31,9 @@ const RecommendationsList = ({
       </p>
 
       {isUsingFallback && (
-        <Alert variant="warning" className="mb-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
+        <Alert variant="default" className="mb-4 border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20">
+          <AlertCircle className="h-4 w-4 text-yellow-500" />
+          <AlertDescription className="text-yellow-700 dark:text-yellow-300">
             Using offline recommendations due to AI service limitations. These recommendations are based on your preferences but may be less personalized.
           </AlertDescription>
         </Alert>
