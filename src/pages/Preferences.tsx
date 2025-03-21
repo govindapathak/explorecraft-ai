@@ -1,14 +1,15 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation as useRouterLocation } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { useLocation } from '@/hooks/useLocation';
+import { useAIRecommendations } from '@/hooks/useAIRecommendations';
 import LocationSection, { LocationData } from '@/components/preferences/LocationSection';
 import CategoriesSection, { Category } from '@/components/preferences/CategoriesSection';
 import CustomFiltersSection from '@/components/preferences/CustomFiltersSection';
 import QuickFiltersSection from '@/components/preferences/QuickFiltersSection';
+import RecommendationTile from '@/components/RecommendationTile';
 
 const PreferencesPage = () => {
   const navigate = useNavigate();
@@ -18,17 +19,18 @@ const PreferencesPage = () => {
   const [dislikedCategories, setDislikedCategories] = useState<string[]>([]);
   const [customFilters, setCustomFilters] = useState<string[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
+  const [selectedItems, setSelectedItems] = useState<any[]>([]);
+  
+  const { 
+    recommendations, 
+    isLoading: isGeneratingRecommendations, 
+    generateRecommendations 
+  } = useAIRecommendations();
 
-  // Initialize location from different sources
   useEffect(() => {
-    // Try to get location from router state first (from LocationPermission page)
     const locationFromState = routerLocation.state?.location as LocationData | undefined;
-    
-    // Then try localStorage (might be set from LocationPermission or manual input)
     const savedLocationJSON = localStorage.getItem('userLocation');
     const savedLocation = savedLocationJSON ? JSON.parse(savedLocationJSON) as LocationData : null;
-    
-    // Finally fallback to currentLocation from useLocation hook
     const locationFromHook = currentLocation ? {
       name: "Current Location",
       coords: { 
@@ -37,10 +39,8 @@ const PreferencesPage = () => {
       }
     } : null;
     
-    // Use the first available location
     setSelectedLocation(locationFromState || savedLocation || locationFromHook);
-    
-    // Load any saved preferences if they exist
+
     const savedPrefsJSON = localStorage.getItem('userPreferences');
     if (savedPrefsJSON) {
       try {
@@ -88,8 +88,46 @@ const PreferencesPage = () => {
 
   const handleLocationSelected = (location: LocationData) => {
     setSelectedLocation(location);
-    // Save to localStorage for persistence
     localStorage.setItem('userLocation', JSON.stringify(location));
+  };
+
+  const handleGenerateRecommendations = () => {
+    if (!selectedLocation) {
+      toast({
+        title: "Location required",
+        description: "Please select a location to generate recommendations",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (likedCategories.length === 0) {
+      toast({
+        title: "Preferences required",
+        description: "Please select at least one category you like",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const userPreferences = {
+      location: selectedLocation,
+      likes: likedCategories,
+      dislikes: dislikedCategories,
+      customFilters
+    };
+
+    generateRecommendations(userPreferences);
+  };
+
+  const handleAddToItinerary = (item: any) => {
+    if (!selectedItems.some(selected => selected.id === item.id)) {
+      setSelectedItems([...selectedItems, item]);
+      toast({
+        title: "Added to itinerary",
+        description: `${item.name} has been added to your itinerary.`
+      });
+    }
   };
 
   const handleNext = () => {
@@ -111,7 +149,6 @@ const PreferencesPage = () => {
       return;
     }
 
-    // Store preferences in localStorage for now
     localStorage.setItem('userPreferences', JSON.stringify({
       location: selectedLocation,
       likes: likedCategories,
@@ -119,7 +156,10 @@ const PreferencesPage = () => {
       customFilters: customFilters
     }));
     
-    // Navigate to the attractions discovery page
+    if (selectedItems.length > 0) {
+      localStorage.setItem('itineraryItems', JSON.stringify(selectedItems));
+    }
+    
     navigate('/discover');
   };
 
@@ -136,6 +176,8 @@ const PreferencesPage = () => {
         <LocationSection 
           selectedLocation={selectedLocation} 
           onLocationSelected={handleLocationSelected}
+          onGenerateRecommendations={handleGenerateRecommendations}
+          isGeneratingRecommendations={isGeneratingRecommendations}
         />
 
         <CategoriesSection 
@@ -154,6 +196,29 @@ const PreferencesPage = () => {
         <QuickFiltersSection
           onFilterChange={(filter) => console.log('Filter selected:', filter)}
         />
+
+        {recommendations.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold flex items-center">
+              <Sparkles className="h-5 w-5 mr-2 text-primary" />
+              AI Recommendations
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Based on your preferences, you might enjoy these attractions:
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {recommendations.map(recommendation => (
+                <RecommendationTile
+                  key={recommendation.id}
+                  recommendation={recommendation}
+                  onAdd={handleAddToItinerary}
+                  isAdded={selectedItems.some(item => item.id === recommendation.id)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         <Button 
           size="lg" 
