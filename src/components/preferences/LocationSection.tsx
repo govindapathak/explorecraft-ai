@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import LocationSelector from '@/components/LocationSelector';
 import { Map, Sparkles, Loader2, BrainCircuit } from 'lucide-react';
@@ -37,7 +37,7 @@ const LocationSection = ({
   ];
   
   // Update the stage indicator every 1.2 seconds when generating
-  useState(() => {
+  useEffect(() => {
     if (isGeneratingRecommendations) {
       const interval = setInterval(() => {
         setProgressStage(current => {
