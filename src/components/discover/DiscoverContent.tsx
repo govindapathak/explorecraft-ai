@@ -43,23 +43,26 @@ const DiscoverContent = ({
   locationInsights,
   userLocationName
 }: DiscoverContentProps) => {
+  const hasItems = Array.isArray(displayedAttractions) && displayedAttractions.length > 0;
+  
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">
-          {isLoadingPlaces || isGeneratingRecommendations ? "Searching..." : 
-           displayedAttractions.length > 0 ? 
-           `${displayedAttractions.length} attractions found` : 
-           "No attractions found"}
+          {isLoadingPlaces || isGeneratingRecommendations 
+            ? "Searching..." 
+            : (hasItems 
+              ? `${displayedAttractions.length} attractions found` 
+              : "No attractions found")}
         </h2>
         <div className="flex gap-2">
           <Button 
             size="sm" 
             variant="default"
             onClick={handleCreateItinerary}
-            disabled={selectedItems.length === 0}
+            disabled={!selectedItems || selectedItems.length === 0}
           >
-            Create Itinerary ({selectedItems.length})
+            Create Itinerary ({selectedItems?.length || 0})
           </Button>
         </div>
       </div>
@@ -100,7 +103,7 @@ const DiscoverContent = ({
         </div>
       )}
       
-      {!isLoadingPlaces && !isGeneratingRecommendations && displayedAttractions.length === 0 && (
+      {!isLoadingPlaces && !isGeneratingRecommendations && (!displayedAttractions || displayedAttractions.length === 0) && (
         <div className="text-center py-12 border-2 border-dashed rounded-lg">
           <p className="text-muted-foreground mb-4">No attractions found matching your criteria</p>
           <p className="text-muted-foreground mb-4">Try adjusting your filters or searching in a different location</p>
@@ -118,7 +121,7 @@ const DiscoverContent = ({
       )}
       
       {/* Display regular places if no AI recommendations */}
-      {!hasRecommendations && !isLoadingPlaces && !isGeneratingRecommendations && places.length > 0 && (
+      {!hasRecommendations && !isLoadingPlaces && !isGeneratingRecommendations && places && places.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {places.map(item => (
             <RecommendationTile
@@ -132,10 +135,12 @@ const DiscoverContent = ({
       )}
       
       {/* Selected items summary */}
-      <SelectedItemsSummary 
-        selectedItems={selectedItems} 
-        onCreateItinerary={handleCreateItinerary} 
-      />
+      {selectedItems && selectedItems.length > 0 && (
+        <SelectedItemsSummary 
+          selectedItems={selectedItems} 
+          onCreateItinerary={handleCreateItinerary} 
+        />
+      )}
     </div>
   );
 };

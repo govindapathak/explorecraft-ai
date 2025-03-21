@@ -1,12 +1,12 @@
 
 import { Sparkles, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import RecommendationTile from '@/components/RecommendationTile';
+import RecommendationTile, { Recommendation } from '@/components/RecommendationTile';
 
 interface RecommendationsListProps {
-  recommendations: any[];
-  onAddToItinerary: (item: any) => void;
-  selectedItems: any[];
+  recommendations: Recommendation[];
+  onAddToItinerary: (item: Recommendation) => void;
+  selectedItems: Recommendation[];
   isUsingFallback?: boolean;
 }
 
@@ -16,7 +16,7 @@ const RecommendationsList = ({
   selectedItems,
   isUsingFallback = false
 }: RecommendationsListProps) => {
-  if (recommendations.length === 0) {
+  if (!recommendations || recommendations.length === 0) {
     return null;
   }
   
@@ -39,7 +39,7 @@ const RecommendationsList = ({
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {recommendations.map(recommendation => (
           <RecommendationTile
             key={recommendation.id || `rec-${Math.random()}`}

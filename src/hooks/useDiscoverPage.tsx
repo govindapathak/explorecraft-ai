@@ -40,11 +40,18 @@ export function useDiscoverPage() {
   // Generate recommendations when filters change
   const handleGenerateRecommendations = () => {
     const currentPreferences = getCurrentPreferences();
-    generateRecommendations(currentPreferences);
+    if (currentPreferences) {
+      console.log('Generating recommendations with preferences:', currentPreferences);
+      generateRecommendations(currentPreferences);
+    } else {
+      console.error('Failed to get current preferences');
+    }
   };
   
   // Filter displayed recommendations based on active filters
-  const displayedAttractions = hasRecommendations ? recommendations : places;
+  // Make sure we have a fallback in case both are empty
+  const displayedAttractions = hasRecommendations ? recommendations : 
+    (places && places.length > 0 ? places : []);
   
   return {
     userPreferences,

@@ -70,10 +70,22 @@ export function useAIRecommendations() {
       console.log('Recommendations received:', data);
       
       if (data.recommendations && Array.isArray(data.recommendations)) {
-        // Ensure each recommendation has an id to prevent React key errors
+        // Ensure each recommendation has all required fields to prevent errors in RecommendationTile
         const processedRecommendations = data.recommendations.map((rec, index) => ({
-          ...rec,
-          id: rec.id || `gen-rec-${index}`
+          id: rec.id || `gen-rec-${index}`,
+          name: rec.name || 'Unknown Attraction',
+          description: rec.description || 'No description available',
+          image: rec.image || 'https://source.unsplash.com/random/800x600?attraction',
+          rating: rec.rating || 0,
+          numRatings: rec.numRatings || 0,
+          priceLevel: rec.priceLevel || 0,
+          types: rec.types || rec.tags || [],
+          address: rec.address || rec.location || 'Location information not available',
+          distance: rec.distance || 0,
+          duration: rec.duration || '1-2 hours',
+          bestFor: rec.bestFor || [],
+          price: rec.price || '$',
+          type: rec.type || 'attraction'
         }));
         
         setRecommendations(processedRecommendations);
