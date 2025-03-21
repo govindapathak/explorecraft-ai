@@ -42,7 +42,7 @@ const RecommendationsList = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {recommendations.map(recommendation => (
           <RecommendationTile
-            key={recommendation.id}
+            key={recommendation.id || `rec-${Math.random()}`}
             recommendation={recommendation}
             onAdd={onAddToItinerary}
             isAdded={selectedItems.some(item => item.id === recommendation.id)}

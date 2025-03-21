@@ -70,7 +70,13 @@ export function useAIRecommendations() {
       console.log('Recommendations received:', data);
       
       if (data.recommendations && Array.isArray(data.recommendations)) {
-        setRecommendations(data.recommendations);
+        // Ensure each recommendation has an id to prevent React key errors
+        const processedRecommendations = data.recommendations.map((rec, index) => ({
+          ...rec,
+          id: rec.id || `gen-rec-${index}`
+        }));
+        
+        setRecommendations(processedRecommendations);
         
         // Check if we're using fallback recommendations
         if (data.isUsingFallback) {
